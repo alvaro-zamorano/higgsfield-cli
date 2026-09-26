@@ -74,7 +74,7 @@ $HF spend --days 7                           # gasto estimado por modelo
 
 ## Desde Claude: herramientas hf_* (MCP)
 
-Si tienes las herramientas `hf_models`, `hf_model_info`, `hf_generate`, `hf_wait`, `hf_history`, `hf_cancel` y `hf_doctor` (en Cowork aparecen con prefijo, por ejemplo `mcp__remote-devices__higgsfield__hf_generate`), úsalas en vez de pasar comandos. Así es el flujo:
+Si tienes las herramientas `hf_models`, `hf_model_info`, `hf_generate`, `hf_wait`, `hf_spend`, `hf_history`, `hf_cancel` y `hf_doctor` (en Cowork aparecen con prefijo, por ejemplo `mcp__remote-devices__higgsfield__hf_generate`), úsalas en vez de pasar comandos. Así es el flujo:
 
 1. Si dudas de los parámetros, `hf_model_info`.
 2. `hf_generate` con `dry_run=true`.
