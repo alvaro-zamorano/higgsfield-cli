@@ -495,3 +495,152 @@ def test_gen_records_estimate_and_spend_cli(home, media_server, monkeypatch, cap
     assert code == EXIT_OK and "Coste estimado: ~$0.82" in err
     code, out, _ = run_cli(capsys, "spend", "--days", "1")
     assert code == EXIT_OK and "seedance-2.5" in out and "0.82" in out and "open.higgsfield.ai/usage" in out
+
+
+# ---------- prompt guides & ratings ----------
+
+A_ID = "aaaaaaaa-1111-2222-3333-444444444444"
+B_ID = "bbbbbbbb-1111-2222-3333-444444444444"
+
+
+def _hist(home, *records):
+    path = home / "output" / "history.jsonl"
+    for rec in records:
+        storage.append_history(path, rec)
+    return path
+
+
+def _gen(rid, endpoint, label, prompt, status="completed", **params):
+    return {"event": "final", "request_id": rid, "endpoint": endpoint, "label": label, "status": status,
+            "ok": status == "completed", "params": {"prompt": prompt, **params}}
+
+
+def test_guide_families():
+    from hfcli import guides
+    for alias in ("seedance-2.5", "seedance-2.5-i2v", "seedance-2.5-ref", "seedance-2.5-edit",
+                  "seedance-2.5-extend", "seedance-2.0", "seedance-2.0-ref"):
+        assert guides.family(resolve(alias).endpoint) == "seedance", alias
+    for alias in ("kling-3", "kling-3-pro-i2v", "kling-3-4k", "kling-3-turbo", "kling-3-motion-pro"):
+        assert guides.family(resolve(alias).endpoint) == "kling", alias
+    for alias in ("z-image", "wan-3", "minimax-h3", "product-shots"):
+        assert guides.family(resolve(alias).endpoint) is None, alias
+
+
+def test_guide_files_are_packaged_and_sourced():
+    from hfcli import guides
+    assert guides.read_guide("general").startswith("# ")
+    for name in ("seedance", "kling"):
+        text = guides.read_guide(name)
+        assert text.startswith("# ") and "## Fuentes" in text and text.count("https://") >= 5
+        assert "Consultado el 2026-09-26" in text
+
+
+def test_rating_merges_without_touching_status_order_or_spend(home):
+    from hfcli import costs, guides
+    hist = _hist(home, _gen(A_ID, "bytedance/seedance-2.5/text-to-video", "seedance-2.5", "a red door",
+                            resolution="480p", duration=4),
+                 _gen(B_ID, "z-image/turbo", "z-image", "an apple"))
+    before = costs.spend_report(storage.read_history(hist), 1)
+    saved = guides.rate(hist, A_ID, 5, "  gran \n plano ")
+    assert saved["rating_note"] == "gran plano" and saved["label"] == "seedance-2.5"
+    recs = storage.read_history(hist)
+    assert [r["request_id"] for r in recs] == [A_ID, B_ID]  # a rating does not move the record
+    a = recs[0]
+    assert a["event"] == "final" and a["status"] == "completed" and a["rating"] == 5 and a["rated_at"]
+    assert costs.spend_report(recs, 1)["total"] == before["total"]
+    guides.rate(hist, A_ID, 2)  # the latest rating wins, an empty note clears the old one
+    a = storage.read_history(hist)[0]
+    assert a["rating"] == 2 and a["rating_note"] == ""
+    storage.append_history(hist, _gen(A_ID, "bytedance/seedance-2.5/text-to-video", "seedance-2.5", "a red door"))
+    assert storage.read_history(hist)[-1]["rating"] == 2  # a later status record keeps the rating
+
+
+@pytest.mark.parametrize("rid,rating,note,needle", [
+    ("cccccccc-1111-2222-3333-444444444444", 4, "", "no está en el historial"),
+    ("../../etc/passwd", 4, "", "no válido"),
+    (A_ID, 0, "", "de 1 a 5"),
+    (A_ID, 6, "", "de 1 a 5"),
+    (A_ID, True, "", "de 1 a 5"),
+    (A_ID, "5", "", "de 1 a 5"),
+    (A_ID, 3, "x" * 501, "demasiado largo"),
+])
+def test_rate_rejects_bad_input(home, rid, rating, note, needle):
+    from hfcli import guides
+    from hfcli.config import UsageError
+    hist = _hist(home, _gen(A_ID, "z-image/turbo", "z-image", "apple"))
+    with pytest.raises(UsageError, match=needle):
+        guides.rate(hist, rid, rating, note)
+    assert "rating" not in storage.read_history(hist)[0]
+
+
+def test_guide_shows_best_and_worst_of_the_same_family(home):
+    from hfcli import guides
+    long_prompt = "wide shot " * 120
+    hist = _hist(home,
+                 _gen(A_ID, "bytedance/seedance-2.5/image-to-video", "seedance-2.5-i2v", "slow push-in on the red door",
+                      resolution="480p", duration=5),
+                 _gen(B_ID, "bytedance/seedance-2.5/text-to-video", "seedance-2.5", "fast chaotic chase"),
+                 _gen("cccccccc-1111-2222-3333-444444444444", "kling-video/v3.0/std/text-to-video", "kling-3", "kling prompt"),
+                 _gen("dddddddd-1111-2222-3333-444444444444", "bytedance/seedance-2.0/text-to-video", "seedance-2.0", "neutral one"),
+                 _gen("eeeeeeee-1111-2222-3333-444444444444", "bytedance/seedance-2.5/reference-to-video", "seedance-2.5-ref", long_prompt))
+    guides.rate(hist, A_ID, 5, "luz perfecta")
+    guides.rate(hist, B_ID, 1, "demasiado rápido")
+    guides.rate(hist, "cccccccc-1111-2222-3333-444444444444", 5, "otra familia")
+    guides.rate(hist, "dddddddd-1111-2222-3333-444444444444", 3, "normal")
+    guides.rate(hist, "eeeeeeee-1111-2222-3333-444444444444", 4)
+    text = guides.render(resolve("seedance-2.5"), storage.read_history(hist), include_general=False)
+    assert "slow push-in on the red door" in text and "luz perfecta" in text and "resolution=480p" in text
+    assert "fast chaotic chase" in text and "demasiado rápido" in text and "Mal valoradas" in text
+    assert "kling prompt" not in text and "neutral one" not in text
+    assert "Seedance 2.5 (ByteDance)" in text and "Flujo de trabajo" not in text
+    assert "prompt: " + ("wide shot " * 70).strip() + "…\n" in text  # long prompt truncated at 700 chars
+    assert text.index("★5") < text.index("★4")  # best first
+    kling = guides.render(resolve("kling-3-pro"), storage.read_history(hist))
+    assert "kling prompt" in kling and "the red door" not in kling and "Flujo de trabajo" in kling
+
+
+def test_guide_without_ratings_or_specific_guide(home):
+    from hfcli import guides
+    text = guides.render(resolve("z-image"), [])
+    assert "Aún no hay generaciones valoradas" in text and "Sin guía específica" in text and "Flujo de trabajo" in text
+
+
+def test_cli_guide_rate_and_history(home, capsys, monkeypatch):
+    _hist(home, _gen(A_ID, "bytedance/seedance-2.5/text-to-video", "seedance-2.5", "a red door"))
+    code, out, _ = run_cli(capsys, "rate", A_ID, "4", "buena luz")
+    assert code == EXIT_OK and "★4" in out and "buena luz" in out
+    code, out, _ = run_cli(capsys, "history")
+    assert code == EXIT_OK and "★4" in out
+    code, out, _ = run_cli(capsys, "guide", "seedance-2.5-extend")
+    assert code == EXIT_OK and "buena luz" in out and "Flujo de trabajo" in out
+    code, out, _ = run_cli(capsys, "guide", "kling-3", "--no-general")
+    assert code == EXIT_OK and "Kling 3.0" in out and "Flujo de trabajo" not in out
+    code, _, err = run_cli(capsys, "rate", B_ID, "4")
+    assert code == EXIT_USAGE and "no está en el historial" in err
+    code, _, err = run_cli(capsys, "guide", "no-such-model")
+    assert code == EXIT_USAGE and "Modelo desconocido" in err
+    with pytest.raises(SystemExit):
+        cli.main(["rate", A_ID, "9"])
+
+    def broken(*a, **k):
+        raise OSError("disco lleno")
+    from hfcli import guides
+    monkeypatch.setattr(guides.storage, "append_history", broken)
+    code, _, err = run_cli(capsys, "rate", A_ID, "3")
+    assert code == EXIT_FAILED and "disco lleno" in err
+
+
+def test_strict_history_write_raises(tmp_path):
+    target = tmp_path / "dir-as-file"
+    target.write_text("x")
+    with pytest.raises(OSError):
+        storage.append_history(target / "history.jsonl", {"event": "rating"}, strict=True)
+    storage.append_history(target / "history.jsonl", {"event": "final"})  # best effort: no exception
+
+
+def test_doctor_reports_ffmpeg(home, monkeypatch):
+    from hfcli import frames
+    monkeypatch.setattr(api, "raw_get", lambda path, params=None: httpx.Response(404))
+    monkeypatch.setattr(frames, "find_ffmpeg", lambda: None)
+    lines, _ = cli.doctor_report(__import__("hfcli.config", fromlist=["x"]).load_settings())
+    assert any("sin ffmpeg" in line for line in lines)

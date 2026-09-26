@@ -212,13 +212,23 @@ def test_stdio_roundtrip(tmp_path):
                 bad = await session.call_tool("hf_generate", {"model": "z-image", "prompt": "apple",
                                                               "params": {"style": "x"}})
                 hist = await session.call_tool("hf_history", {})
-                return init, tools, listing, info, dry, bad, hist
+                guide = await session.call_tool("hf_prompt_guide", {"model": "seedance-2.5-i2v"})
+                rate = await session.call_tool("hf_rate", {"request_id": RID, "rating": 5, "note": "x"})
+                loose = [await session.call_tool("hf_rate", {"request_id": RID, "rating": value})
+                         for value in (True, "5", 4.5, 9)]
+                return init, tools, listing, info, dry, bad, hist, guide, rate, loose
 
-    init, tools, listing, info, dry, bad, hist = anyio.run(scenario)
+    init, tools, listing, info, dry, bad, hist, guide, rate, loose = anyio.run(scenario)
+    assert all(r.isError for r in loose)  # no silent coercion of true/"5"/4.5, no out-of-range ratings
     assert init.serverInfo.name == "higgsfield" and "dinero" in (init.instructions or "")
+    assert "hf_prompt_guide" in init.instructions and "hf_rate" in init.instructions
     assert set(tools) == {"hf_models", "hf_model_info", "hf_generate", "hf_wait", "hf_history", "hf_cancel",
-                          "hf_doctor", "hf_spend"}
+                          "hf_doctor", "hf_spend", "hf_prompt_guide", "hf_rate"}
     assert tools["hf_models"].annotations.readOnlyHint is True
+    assert tools["hf_prompt_guide"].annotations.readOnlyHint is True
+    assert tools["hf_rate"].annotations.readOnlyHint is False and tools["hf_rate"].annotations.openWorldHint is False
+    assert "Seedance 2.5 (ByteDance)" in guide.content[0].text and "Flujo de trabajo" in guide.content[0].text
+    assert "no está en el historial" in rate.content[0].text  # nothing generated in this home
     assert tools["hf_generate"].annotations.readOnlyHint is False
     assert "seedance-2.5-i2v" in listing.content[0].text
     assert "image_url" in info.content[0].text
@@ -408,3 +418,144 @@ def test_spend_tool_reports(home, monkeypatch):
     m.generate_impl("z-image", "two", None, dry_run=False)
     report = m.spend_impl(1)
     assert report["total"]["lanzadas"] == 2 and report["total"]["pendientes_o_inciertas"] == 2
+
+
+# ---------- direction: guides, ratings, video frames ----------
+
+def test_prompt_guide_and_rate_tools(home, monkeypatch):
+    fake_submit(monkeypatch)
+    m.generate_impl("seedance-2.5", "a red door opens slowly", {"resolution": "480p", "duration": 4}, dry_run=False)
+    ledger_before = (home / "output" / "mcp_ledger.jsonl").read_text()
+    saved = m.rate_impl(RID, 5, "funciona muy bien")
+    assert saved["saved"] is True and saved["rating"] == 5 and saved["label"] == "seedance-2.5"
+    assert (home / "output" / "mcp_ledger.jsonl").read_text() == ledger_before  # rating never touches money guards
+    text = m.guide_impl("seedance-2.5-i2v", include_general=False)
+    assert "a red door opens slowly" in text and "funciona muy bien" in text and "Flujo de trabajo" not in text
+    item = m.history_impl()[-1]
+    assert item["rating"] == 5 and item["rating_note"] == "funciona muy bien" and item["prompt"] == "a red door opens slowly"
+    assert item["status"] == "queued"  # still the generation's own status
+    assert m.spend_impl(1)["total"]["lanzadas"] == 1
+    with pytest.raises(UsageError):
+        m.rate_impl(RID, 9)
+
+
+def _make_video(path, seconds=3):
+    import shutil
+    import subprocess
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        pytest.skip("ffmpeg no disponible")
+    subprocess.run([ffmpeg, "-loglevel", "error", "-f", "lavfi", "-i", f"testsrc=duration={seconds}:size=320x240:rate=10",
+                    "-pix_fmt", "yuv420p", str(path)], check=True, timeout=60)
+    return path
+
+
+def test_video_contact_sheet_in_previews(home, tmp_path):
+    from io import BytesIO
+    from PIL import Image as PILImage
+    video = _make_video(tmp_path / "clip.mp4", seconds=3)
+    previews = m._previews([{"file": str(video)}, {"file": str(tmp_path / "missing.mp4")}])
+    assert len(previews) == 1 and previews[0].data[:2] == b"\xff\xd8"
+    sheet = PILImage.open(BytesIO(previews[0].data))
+    assert sheet.size == (768, 576)  # 2x2 frames scaled to 384 px wide
+    from hfcli import frames
+    _, times = frames.contact_sheet(video)
+    assert times == [0.2, 1.1, 1.9, 2.8]
+
+
+def test_video_preview_degrades_gracefully(home, tmp_path, monkeypatch):
+    from hfcli import frames
+    junk = tmp_path / "junk.mp4"
+    junk.write_bytes(b"\x00\x00\x00\x18ftypmp42" + b"x" * 500)
+    if frames.find_ffmpeg():
+        assert m._previews([{"file": str(junk)}]) == []  # unreadable video: no preview, no error
+    video = _make_video(tmp_path / "ok.mp4", seconds=1)
+    monkeypatch.setattr(m, "VIDEO_PREVIEW_BUDGET_S", 0)  # no time left: skipped without calling ffmpeg
+    assert m._previews([{"file": str(video)}]) == []
+    monkeypatch.setattr(m, "VIDEO_PREVIEW_BUDGET_S", 9)
+    monkeypatch.setattr(frames, "find_ffmpeg", lambda: None)
+    assert m._previews([{"file": str(video)}]) == []
+
+
+def test_find_ffmpeg_env_override(monkeypatch, tmp_path):
+    from hfcli import frames
+    monkeypatch.setenv("HFCLI_FFMPEG", str(tmp_path / "nope"))
+    assert frames.find_ffmpeg() is None
+    fake = tmp_path / "ffmpeg"
+    fake.write_text("#!/bin/sh\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("HFCLI_FFMPEG", str(fake))
+    assert frames.find_ffmpeg() == str(fake)
+    monkeypatch.delenv("HFCLI_FFMPEG")
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    monkeypatch.setattr(frames, "SEARCH_DIRS", (str(tmp_path),))
+    assert frames.find_ffmpeg() == str(fake)  # found in a known folder even with a minimal PATH
+
+
+# ---------- regression tests for the review of the direction layer ----------
+
+def test_hf_wait_survives_preview_failure(home, monkeypatch, tmp_path):
+    import anyio
+    out = tmp_path / "v.mp4"
+    out.write_bytes(b"x")
+    storage.append_history(home / "output" / "history.jsonl", {
+        "event": "final", "request_id": RID, "label": "seedance-2.5", "status": "completed", "ok": True,
+        "outputs": [{"url": "https://x.higgsfield.ai/v.mp4", "file": str(out)}]})
+
+    def boom(*a, **k):
+        raise UnicodeDecodeError("utf-8", b"\xe9", 0, 1, "bad metadata")
+    monkeypatch.setattr(m, "_previews", boom)
+    content = anyio.run(m.hf_wait, RID)
+    data = json.loads(content[0])
+    assert data["done"] is True and data["ok"] is True and len(content) == 1
+
+
+def test_duration_parse_tolerates_non_utf8(tmp_path, monkeypatch):
+    from hfcli import frames
+    fake = tmp_path / "ffmpeg"
+    fake.write_text("#!/bin/sh\nprintf 'title: caf\\351\\n  Duration: 00:00:02.50, start: 0\\n' >&2\nexit 1\n")
+    fake.chmod(0o755)
+    video = tmp_path / "v.mp4"
+    video.write_bytes(b"x")
+    assert frames.duration_s(str(fake), video, timeout=5) == 2.5
+
+
+def test_previews_respect_remaining_time(home, tmp_path, monkeypatch):
+    from hfcli import frames
+    video = _make_video(tmp_path / "ok.mp4", seconds=1)
+    calls = []
+    monkeypatch.setattr(frames, "contact_sheet", lambda *a, **k: calls.append(k) or None)
+    assert m._previews([{"file": str(video)}], 0.5) == [] and calls == []
+    m._previews([{"file": str(video)}], 30)
+    assert calls and calls[0]["budget_s"] <= m.VIDEO_PREVIEW_BUDGET_S  # never more than the preview budget
+
+
+def test_corrupt_history_does_not_break_tools(home):
+    hist = home / "output" / "history.jsonl"
+    hist.parent.mkdir(parents=True, exist_ok=True)
+    good = {"ts": storage.now_iso(), "event": "final", "request_id": RID, "label": "seedance-2.5", "status": "completed",
+            "endpoint": "bytedance/seedance-2.5/text-to-video", "params": {"prompt": "a café at dawn"}}
+    with hist.open("wb") as fh:
+        fh.write(b'{"event": "final", "request_id": "cut-mid-char", "params": {"prompt": "caf\xc3')  # truncated line
+        fh.write(b"\n" + json.dumps({"event": "final", "request_id": ["not", "hashable"]}).encode() + b"\n")
+        fh.write(json.dumps({"event": "final", "request_id": "abcdef12-0000", "params": "not a dict",
+                             "outputs": "nope", "label": "z-image"}).encode() + b"\n")
+        fh.write(json.dumps(good, ensure_ascii=False).encode() + b"\n")
+        fh.write(json.dumps({"event": "rating", "request_id": RID, "rating": True}).encode() + b"\n")
+    records = storage.read_history(hist)
+    assert records[-1]["request_id"] == RID and "rating" not in records[-1]  # bogus rating ignored
+    assert [h.get("prompt") for h in m.history_impl()][-1] == "a café at dawn"
+    m.rate_impl(RID, 4, "ok")
+    assert "a café at dawn" in m.guide_impl("seedance-2.5", include_general=False)
+    assert m.spend_impl(1)["total"]["completadas"] >= 1
+
+
+def test_guide_output_is_redacted(home):
+    hist = home / "output" / "history.jsonl"
+    hist.parent.mkdir(parents=True, exist_ok=True)
+    rec = {"event": "final", "request_id": RID, "label": "z-image", "endpoint": "z-image/turbo", "status": "completed",
+           "params": {"prompt": "leaked test-secret-value here"}}
+    hist.write_text(json.dumps(rec) + "\n")  # written raw, bypassing the redaction of append_history
+    m.rate_impl(RID, 5)
+    text = m.guide_impl("z-image")
+    assert "test-secret-value" not in text and "leaked" in text
