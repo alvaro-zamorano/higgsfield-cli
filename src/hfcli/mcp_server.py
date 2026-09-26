@@ -10,8 +10,12 @@ Every generation costs money. Guards, all enforced server-side:
 - Optional rolling 24 h cap on jobs launched through MCP (HFCLI_MCP_MAX_JOBS_PER_DAY; unset = no cap).
 - Every dry run and submission carries a cost estimate when public pricing allows it; hf_spend
   reports launched/charged/estimated spend from the local history.
-- hf_wait never blocks for more than ~45 s: polling has a hard deadline with short per-request
-  timeouts, and downloading/Cloudinary run in a background worker (one per request_id).
+- hf_wait stays under a 60 s client timeout: polling has a hard deadline with short per-request
+  timeouts (~45 s worst case), downloading/Cloudinary run in a background worker (one per request_id),
+  and video previews only get the time left up to HF_WAIT_TOTAL_S.
+Direction: hf_prompt_guide returns the prompting guide for a model family plus what was rated well or
+badly on this machine; hf_rate stores the user's verdict; hf_wait shows image thumbnails and, with
+ffmpeg, a 4-frame contact sheet of videos so results can be reviewed before iterating.
 The API key stays in ~/.higgsfield-cli/.env.local on this machine; tool output is redacted.
 """
 from __future__ import annotations
@@ -27,13 +31,14 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import anyio
 from mcp.server.fastmcp import FastMCP, Image
 from mcp.types import ToolAnnotations
+from pydantic import Field
 
-from hfcli import api, costs, jobs, storage
+from hfcli import api, costs, frames, guides, jobs, storage
 from hfcli.catalog import Target, describe_param, has_public_price, load, resolve, validate
 from hfcli.config import Settings, UsageError, load_settings, redact
 from hfcli.params import check_values, file_refs, with_placeholders
@@ -43,14 +48,23 @@ CAP_WINDOW = timedelta(hours=24)
 WAIT_MAX_S = 35  # + at most one 10 s request => stays under a 60 s client timeout
 REQUEST_TIMEOUT_S = 10
 PREVIEW_PX = 512
+VIDEO_PREVIEW_BUDGET_S = 9  # ffmpeg time for all video contact sheets of one hf_wait call
+HF_WAIT_TOTAL_S = 52  # previews only use what is left of this, so hf_wait answers before a 60 s client timeout
 
 INSTRUCTIONS = """Herramientas para generar imágenes y vídeos con la API de Higgsfield en el ordenador del usuario.
 Cada generación cuesta dinero real. Flujo obligatorio:
-1. Si dudas de los parámetros, hf_model_info(model).
-2. hf_generate(..., dry_run=true) para validar sin gastar.
-3. Enseña al usuario modelo, parámetros y coste estimado (estimated_cost_usd; si es null, dilo), y espera su OK explícito.
-4. hf_generate(..., dry_run=false) devuelve un request_id.
-5. hf_wait(request_id) hasta done=true; si devuelve done=false, vuelve a llamarlo.
+1. Antes de escribir un prompt, hf_prompt_guide(model): cómo escribir para ese modelo y qué ha funcionado aquí.
+   Si faltan datos que cambian el resultado (formato, duración, material de referencia, diálogo), pregúntalos.
+2. Si dudas de los parámetros, hf_model_info(model).
+3. hf_generate(..., dry_run=true) para validar sin gastar.
+4. Enseña al usuario el prompt, los parámetros, los supuestos y el coste estimado (estimated_cost_usd; si es null, dilo).
+   Propón primero una prueba barata (resolución o variante más baratas) y espera su OK explícito.
+   Cada iteración y la versión final son generaciones nuevas: vuelve al dry run, enseña el coste y espera un OK
+   explícito para esa llamada concreta. Un OK anterior no vale para la siguiente.
+5. hf_generate(..., dry_run=false) devuelve un request_id.
+6. hf_wait(request_id) hasta done=true; si devuelve done=false, vuelve a llamarlo.
+7. Revisa el resultado (miniaturas o fotogramas del vídeo) contra lo pedido y di qué cambiarías.
+   Pide al usuario una nota de 1 a 5 y un comentario, y guárdalos con hf_rate. Itera cambiando una sola cosa cada vez.
 Nunca repitas hf_generate porque una llamada tardó o falló: recupera con hf_wait(request_id).
 Si submitted es "unknown" (incierto), no repitas: pide al usuario que revise open.higgsfield.ai/usage.
 Archivos locales: "@/ruta/absoluta" en los campos de URL de params (image_url, image_urls, video_url...).
@@ -161,23 +175,34 @@ def _history_record(settings: Settings, request_id: str) -> dict:
     return {}
 
 
-def _previews(outputs: list[dict]) -> list[Image]:
+def _previews(outputs: list[dict], video_budget_s: float | None = None) -> list[Image]:
+    """Thumbnails of generated images and, if ffmpeg is available, a 4-frame contact sheet per video.
+    Never raises: a preview that cannot be built is simply left out."""
     try:
         from PIL import Image as PILImage
     except ImportError:
         return []
+    budget = VIDEO_PREVIEW_BUDGET_S if video_budget_s is None else min(video_budget_s, VIDEO_PREVIEW_BUDGET_S)
+    video_deadline = time.monotonic() + budget
     images = []
     for out in outputs[:4]:
-        path = out.get("file")
-        if not path or Path(path).suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
-            continue
         try:
+            path = out.get("file") if isinstance(out, dict) else None
+            suffix = Path(path).suffix.lower() if isinstance(path, str) and path else ""
+            if suffix in frames.VIDEO_SUFFIXES:
+                left = video_deadline - time.monotonic()
+                sheet = frames.contact_sheet(Path(path), budget_s=left) if left >= 1 else None
+                if sheet:
+                    images.append(Image(data=sheet[0], format="jpeg"))
+                continue
+            if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
+                continue
             with PILImage.open(path) as im:
                 im.thumbnail((PREVIEW_PX, PREVIEW_PX))
                 buf = io.BytesIO()
                 im.convert("RGB").save(buf, format="JPEG", quality=80)
             images.append(Image(data=buf.getvalue(), format="jpeg"))
-        except OSError:
+        except Exception:  # unreadable file, decompression-bomb guard, odd metadata...
             continue
     return images
 
@@ -364,15 +389,31 @@ def wait_impl(request_id: str, max_seconds: int = WAIT_MAX_S) -> tuple[dict, lis
 
 
 def history_impl(n: int = 10) -> list[dict]:
-    keep = ("ts", "status", "ok", "label", "request_id", "via", "error", "warnings")
+    keep = ("ts", "status", "ok", "label", "request_id", "via", "error", "warnings", "rating", "rating_note")
     records = storage.read_history(_settings().history_file)[-max(1, min(n, 100)):]
     out = []
     for rec in records:
-        item = {k: rec.get(k) for k in keep if rec.get(k) is not None}
+        item = {k: rec.get(k) for k in keep if rec.get(k) not in (None, "")}
+        params = rec.get("params") if isinstance(rec.get("params"), dict) else {}
+        prompt = " ".join(str(params.get("prompt") or "").split())
+        if prompt:
+            item["prompt"] = prompt[:200] + ("…" if len(prompt) > 200 else "")
+        outputs = rec.get("outputs") if isinstance(rec.get("outputs"), list) else []
         item["outputs"] = [{k: o.get(k) for k in ("file", "cloudinary_url", "url") if o.get(k)}
-                           for o in rec.get("outputs") or []]
+                           for o in outputs if isinstance(o, dict)]
         out.append(item)
     return out
+
+
+def guide_impl(model: str, include_general: bool = True) -> str:
+    target = resolve(model)
+    return redact(guides.render(target, storage.read_history(_settings().history_file), include_general))
+
+
+def rate_impl(request_id: str, rating: int, note: str = "") -> dict:
+    saved = guides.rate(_settings().history_file, request_id, rating, note)
+    return {"saved": True, **saved,
+            "next": "Guardado. hf_prompt_guide mostrará esta valoración la próxima vez que se use este modelo."}
 
 
 def cancel_impl(request_id: str) -> str:
@@ -423,12 +464,36 @@ async def hf_model_info(model: str) -> str:
         return _error(exc)
 
 
+@server.tool(annotations=READ_ONLY)
+async def hf_prompt_guide(model: str, include_general: bool = True) -> str:
+    """Cómo escribir el prompt para un modelo (alias o endpoint): estructura, cámara, audio, referencias,
+    fallos conocidos, prueba barata y plantillas, con fuentes. Incluye las generaciones de ese modelo mejor
+    y peor valoradas en este ordenador. Llámala antes de escribir cualquier prompt.
+    include_general=false omite el flujo y los principios generales (si ya los tienes en contexto)."""
+    try:
+        return await anyio.to_thread.run_sync(guide_impl, model, include_general)
+    except Exception as exc:
+        return _error(exc)
+
+
+@server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True,
+                                         openWorldHint=False))
+async def hf_rate(request_id: str, rating: Annotated[int, Field(strict=True, ge=1, le=5)], note: str = "") -> str:
+    """Guarda la valoración del usuario sobre una generación ya hecha: rating de 1 a 5 y un comentario
+    corto (qué funcionó o qué falló). No gasta nada. La última valoración de cada request_id es la que cuenta."""
+    try:
+        return _json(await anyio.to_thread.run_sync(rate_impl, request_id, rating, note))
+    except Exception as exc:
+        return _error(exc)
+
+
 @server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False,
                                          openWorldHint=True))
 async def hf_generate(model: str, prompt: str | None = None, params: dict[str, Any] | None = None,
                       dry_run: bool = True, allow_duplicate: bool = False) -> str:
     """Valida (dry_run=true, por defecto, gratis) o lanza (dry_run=false, DE PAGO) una generación.
     model: alias (hf_models) o endpoint. params: parámetros del modelo; archivos locales como "@/ruta".
+    dry_run=false solo con un OK explícito del usuario para esta generación concreta (cada iteración es otra).
     Lanzar devuelve un request_id: después usa hf_wait. Nunca relances por un timeout."""
     try:
         return _json(await anyio.to_thread.run_sync(generate_impl, model, prompt, params, dry_run, allow_duplicate))
@@ -439,22 +504,29 @@ async def hf_generate(model: str, prompt: str | None = None, params: dict[str, A
 @server.tool(annotations=ToolAnnotations(readOnlyHint=False, idempotentHint=True, openWorldHint=True),
              structured_output=False)
 async def hf_wait(request_id: str, max_seconds: int = WAIT_MAX_S, include_preview: bool = True) -> list:
-    """Espera como mucho ~35-45 s a que termine una generación. Si done=false, vuelve a llamar.
+    """Espera como mucho ~35-45 s a que termine una generación (menos de 60 s con previsualizaciones).
+    Si done=false, vuelve a llamar.
     Al terminar descarga el resultado, lo copia a Cloudinary si está configurado y lo anota en el historial.
-    Con include_preview devuelve miniaturas de las imágenes generadas."""
+    Con include_preview devuelve miniaturas de las imágenes y, si hay ffmpeg, 4 fotogramas de cada vídeo
+    (con su segundo marcado) para revisarlo. Llamarla otra vez sobre algo ya terminado vuelve a mostrarlos."""
+    started = time.monotonic()
     try:
         data, outputs = await anyio.to_thread.run_sync(wait_impl, request_id, max_seconds)
     except Exception as exc:
         return [_error(exc)]
     content: list = [_json(data)]
     if include_preview and data.get("done") and data.get("ok"):
-        content += await anyio.to_thread.run_sync(_previews, outputs)
+        left = HF_WAIT_TOTAL_S - (time.monotonic() - started)
+        try:  # previews are a convenience: never lose the result because of them
+            content += await anyio.to_thread.run_sync(_previews, outputs, left)
+        except Exception:
+            pass
     return content
 
 
 @server.tool(annotations=READ_ONLY)
 async def hf_history(n: int = 10) -> str:
-    """Últimas generaciones (estado, request_id, archivos locales, URLs de Cloudinary)."""
+    """Últimas generaciones (estado, request_id, prompt, valoración, archivos locales, URLs de Cloudinary)."""
     try:
         return _json(await anyio.to_thread.run_sync(history_impl, n))
     except Exception as exc:

@@ -1,6 +1,6 @@
 ---
 name: higgsfield-cli
-description: Generar imágenes y vídeos con la API de Higgsfield mediante `hf` (repo alvaro-zamorano/higgsfield-cli) o sus herramientas MCP hf_*: instalarlo en cualquier ordenador, generaciones, lotes, recuperar request_id, historial, Cloudinary. Usar cuando Álvaro pida generar con la API de Higgsfield o AgentOS necesite medios.
+description: Generar imágenes y vídeos con la API de Higgsfield mediante `hf` (repo alvaro-zamorano/higgsfield-cli) o sus herramientas MCP hf_*: instalarlo en cualquier ordenador, escribir el prompt según la guía de cada modelo, generaciones, lotes, recuperar request_id, valoraciones, historial, Cloudinary. Usar cuando Álvaro pida generar con la API de Higgsfield o AgentOS necesite medios.
 ---
 
 # hf — API de Higgsfield desde la terminal
@@ -36,11 +36,12 @@ Para Windows y para actualizar a la última versión, mira el README del repo. E
 ## Reglas
 
 1. **La clave nunca pasa por el chat.** No leas, imprimas, copies ni subas `.env.local`, y no pidas la clave en el chat. Si falta, Álvaro la pone en local. Para comprobar la configuración usa `hf doctor`: no gasta nada y no muestra la clave.
-2. **Valida antes de gastar.** Si dudas de los parámetros, mira `hf models <alias>`. Lanza siempre primero `--dry-run` (gratis) y después la generación real.
-3. **Cada generación cuesta dinero.** Confirma con Álvaro antes de lanzar algo que no haya pedido explícitamente, lotes de más de 5 trabajos, vídeo a 1080p o 4K, o duraciones largas. Dile siempre el coste estimado que da el dry run; si es desconocido, dilo. Para saber cuánto se lleva gastado: `hf spend` (o `hf_spend`); el importe real está en open.higgsfield.ai/usage.
-4. **Usa `--json` y cree solo al resultado.** Hay éxito solo si `ok: true` y `outputs` trae `url` y `file`. No digas que funcionó sin haber visto esa salida.
-5. **`status: "uncertain"`: no repitas.** Puede que la petición llegara. Pide a Álvaro que lo revise en open.higgsfield.ai/usage.
-6. **`timeout`, `lost` o `interrupted`: recupera, no relances.** Usa `hf result <request_id>` y nunca `hf gen` de nuevo, que cobraría dos veces.
+2. **Dirige antes de escribir.** Antes de redactar un prompt, lee la guía del modelo: `hf guide <alias>` o `hf_prompt_guide`. Sigue el flujo de la sección Dirección.
+3. **Valida antes de gastar.** Si dudas de los parámetros, mira `hf models <alias>`. Lanza siempre primero `--dry-run` (gratis) y después la generación real.
+4. **Cada generación cuesta dinero.** Confirma con Álvaro antes de lanzar algo que no haya pedido explícitamente, lotes de más de 5 trabajos, vídeo a 1080p o 4K, o duraciones largas. Dile siempre el coste estimado que da el dry run; si es desconocido, dilo. Para saber cuánto se lleva gastado: `hf spend` (o `hf_spend`); el importe real está en open.higgsfield.ai/usage.
+5. **Usa `--json` y cree solo al resultado.** Hay éxito solo si `ok: true` y `outputs` trae `url` y `file`. No digas que funcionó sin haber visto esa salida.
+6. **`status: "uncertain"`: no repitas.** Puede que la petición llegara. Pide a Álvaro que lo revise en open.higgsfield.ai/usage.
+7. **`timeout`, `lost` o `interrupted`: recupera, no relances.** Usa `hf result <request_id>` y nunca `hf gen` de nuevo, que cobraría dos veces.
 
 Códigos de salida:
 
@@ -50,6 +51,18 @@ Códigos de salida:
 | 1 | No generado (failed, nsfw, canceled, error, timeout, incierto) |
 | 2 | Parámetros o configuración; no se gastó nada |
 | 3 | Generado, pero falló la descarga o Cloudinary (la URL está en la salida) |
+
+## Dirección: cómo conseguir lo que se pide
+
+`hf guide <alias>` / `hf_prompt_guide` devuelve la guía del modelo y, antes, los prompts mejor y peor valorados de esa familia en este ordenador. Hay guías para Seedance 2.5/2.0 y Kling 3.0 (con Motion Control); el resto usa la general. Cada regla indica su fuente ([O] oficial, [H] Higgsfield, [C] comunidad, [I] criterio propio). Son documentación, no resultados probados.
+
+1. **Brief.** Pregunta solo lo que falte y cambie el resultado: plataforma y aspect ratio, duración, material de referencia, diálogo y look. Lo demás, decídelo y decláralo como supuesto.
+2. **Plan de planos.** Encuadre, acción, cámara, duración y audio de cada plano. Después, el prompt según la guía.
+3. **Enseña a Álvaro** el prompt, los parámetros, los supuestos y el coste. Propón primero la prueba barata que indica la guía (Seedance: 480p; Kling: std y sin sonido).
+4. **Revisa el resultado.** `hf_wait` devuelve miniaturas y, con ffmpeg, 4 fotogramas del vídeo con su segundo marcado. Di en concreto qué cumple y qué no.
+5. **Pide una nota (1-5) y un comentario** y guárdalos con `hf rate` / `hf_rate`. Itera cambiando una sola cosa cada vez.
+
+Cada iteración y la versión final son generaciones nuevas: dry run, coste y un OK explícito de Álvaro para cada una. Un OK anterior no vale para la siguiente.
 
 ## Recetas
 
@@ -66,6 +79,8 @@ $HF batch trabajos.jsonl --dry-run && $HF batch trabajos.jsonl --concurrency 2 -
 $HF result <request_id> --json               # recuperar tras timeout, corte o Ctrl+C
 $HF history -n 10
 $HF spend --days 7                           # gasto estimado por modelo
+$HF guide seedance-2.5-i2v                   # guía de prompt del modelo + lo mejor/peor valorado aquí
+$HF rate <request_id> 4 "buena luz, cámara demasiado rápida"
 ```
 
 **Batch.** Una línea por trabajo: `{"model": "<alias>", "prompt": "...", "params": {...}, "name": "etiqueta"}`. Los archivos locales se indican como `"@/ruta"` dentro de `params`. Antes de lanzar nada se validan todos los trabajos y se suben los archivos.
@@ -74,13 +89,15 @@ $HF spend --days 7                           # gasto estimado por modelo
 
 ## Desde Claude: herramientas hf_* (MCP)
 
-Si tienes las herramientas `hf_models`, `hf_model_info`, `hf_generate`, `hf_wait`, `hf_spend`, `hf_history`, `hf_cancel` y `hf_doctor` (en Cowork aparecen con prefijo, por ejemplo `mcp__remote-devices__higgsfield__hf_generate`), úsalas en vez de pasar comandos. Así es el flujo:
+Si tienes las herramientas `hf_prompt_guide`, `hf_models`, `hf_model_info`, `hf_generate`, `hf_wait`, `hf_rate`, `hf_spend`, `hf_history`, `hf_cancel` y `hf_doctor` (en Cowork aparecen con prefijo, por ejemplo `mcp__remote-devices__higgsfield__hf_generate`), úsalas en vez de pasar comandos. Así es el flujo:
 
-1. Si dudas de los parámetros, `hf_model_info`.
-2. `hf_generate` con `dry_run=true`.
-3. Enseña a Álvaro modelo, parámetros y coste, y espera su OK.
-4. `hf_generate` con `dry_run=false`.
-5. `hf_wait` con el `request_id` hasta `done=true`.
+1. `hf_prompt_guide(model)` antes de escribir el prompt.
+2. Si dudas de los parámetros, `hf_model_info`.
+3. `hf_generate` con `dry_run=true`.
+4. Enseña a Álvaro prompt, parámetros, supuestos y coste, y espera su OK. Empieza por la prueba barata.
+5. `hf_generate` con `dry_run=false`.
+6. `hf_wait` con el `request_id` hasta `done=true`.
+7. Revisa las miniaturas o fotogramas. Luego `hf_rate` con la nota y el comentario de Álvaro.
 
 El servidor rechaza peticiones idénticas en 15 minutos y puede tener un tope diario opcional. Si responde `refused`, no lo esquives con `allow_duplicate` salvo que Álvaro pida expresamente otra generación igual. Archivos locales: `"@/ruta/absoluta"` en los campos de URL de `params`.
 

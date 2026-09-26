@@ -18,7 +18,7 @@ from pathlib import Path
 import httpx
 import higgsfield_client
 
-from hfcli import EXIT_FAILED, EXIT_OK, EXIT_STORAGE, EXIT_USAGE, __version__, api, costs, jobs, storage
+from hfcli import EXIT_FAILED, EXIT_OK, EXIT_STORAGE, EXIT_USAGE, __version__, api, costs, frames, guides, jobs, storage
 from hfcli.catalog import Target, describe_param, has_public_price, load, resolve, validate
 from hfcli.config import Settings, UsageError, credential_state, load_settings, redact
 from hfcli.params import build_params, check_values, file_refs, split_inputs, with_placeholders
@@ -332,8 +332,27 @@ def cmd_history(args, settings: Settings) -> int:
     for rec in records:
         first = (rec.get("outputs") or [{}])[0]
         where = first.get("file") or first.get("url") or rec.get("error") or ""
-        print(f"{rec.get('ts', '')[:19]}  {rec.get('status', ''):<11} {rec.get('label', ''):<20} "
+        stars = f"★{rec['rating']}" if isinstance(rec.get("rating"), int) else "  "
+        print(f"{rec.get('ts', '')[:19]}  {rec.get('status', ''):<11} {stars} {rec.get('label', ''):<20} "
               f"{rec.get('request_id', '')}  {where}")
+    return EXIT_OK
+
+
+def cmd_guide(args, settings: Settings) -> int:
+    target = resolve(args.model)
+    print(redact(guides.render(target, storage.read_history(settings.history_file),
+                               include_general=not args.no_general)))
+    return EXIT_OK
+
+
+def cmd_rate(args, settings: Settings) -> int:
+    try:
+        saved = guides.rate(settings.history_file, args.request_id, args.rating, args.note or "")
+    except OSError as exc:
+        print(f"No se pudo guardar la valoración: {exc}", file=sys.stderr)
+        return EXIT_FAILED
+    print(redact(f"Guardado: {saved['label'] or saved['request_id']} ★{saved['rating']}"
+                 + (f" · {saved['rating_note']}" if saved["rating_note"] else "")))
     return EXIT_OK
 
 
@@ -538,6 +557,9 @@ def doctor_report(settings: Settings) -> tuple[list[str], int]:
         line("INFO", "Cloudinary: desactivado (sin CLOUDINARY_URL)")
     meta = load()["_meta"]
     line("OK", f"Catálogo: {meta['endpoints']} endpoints (esquemas del {meta['retrieved']})")
+    ffmpeg = frames.find_ffmpeg()
+    line("INFO", f"Fotogramas de vídeo para revisar resultados: ffmpeg en {ffmpeg}" if ffmpeg else
+         "Fotogramas de vídeo: sin ffmpeg; hf_wait solo enseñará miniaturas de imágenes (brew install ffmpeg)")
     return lines, fails
 
 
@@ -609,6 +631,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_history)
 
+    p = sub.add_parser("guide", help="cómo escribir el prompt para un modelo + lo mejor y peor valorado aquí")
+    p.add_argument("model", help="alias o endpoint")
+    p.add_argument("--no-general", action="store_true", help="sin el flujo y los principios generales")
+    p.set_defaults(func=cmd_guide)
+
+    p = sub.add_parser("rate", help="valorar una generación (1-5) para que la guía aprenda qué funciona")
+    p.add_argument("request_id")
+    p.add_argument("rating", type=_int_bounded(1, 5), help="nota de 1 a 5")
+    p.add_argument("note", nargs="?", help="comentario corto: qué funcionó o qué falló")
+    p.set_defaults(func=cmd_rate)
+
     p = sub.add_parser("spend", help="cuánto se ha lanzado y gastado (estimado) por modelo")
     p.add_argument("--days", type=_bounded(0.01, 3650), default=30, help="ventana en días (def. 30)")
     p.add_argument("--json", action="store_true")
@@ -660,4 +693,4 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_FAILED
     except BrokenPipeError:  # output piped into `head` and closed early
         sys.stdout = open(os.devnull, "w")
-        return EXIT_OK if args.command in {"models", "history", "presets", "doctor", "status", "spend"} else EXIT_FAILED
+        return EXIT_OK if args.command in {"models", "history", "presets", "doctor", "status", "spend", "guide"} else EXIT_FAILED

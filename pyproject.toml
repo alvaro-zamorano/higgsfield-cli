@@ -27,7 +27,7 @@ hf = "hfcli.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-hfcli = ["catalog.json"]
+hfcli = ["catalog.json", "prompt_guides/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
