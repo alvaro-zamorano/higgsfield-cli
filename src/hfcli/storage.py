@@ -99,14 +99,17 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def append_history(history_file: Path, record: dict) -> None:
-    """Best effort: a history write failure is reported but never breaks a paid job."""
+def append_history(history_file: Path, record: dict, strict: bool = False) -> None:
+    """Best effort: a history write failure is reported but never breaks a paid job.
+    strict=True raises instead (for writes whose only purpose is the history, like ratings)."""
     line = redact(json.dumps({"ts": now_iso(), **record}, ensure_ascii=False)) + "\n"
     try:
         history_file.parent.mkdir(parents=True, exist_ok=True)
         with _history_lock, history_file.open("a", encoding="utf-8") as fh:
             fh.write(line)
     except OSError as exc:
+        if strict:
+            raise
         try:
             print(f"AVISO: no se pudo escribir el historial ({exc}): {line.strip()}", file=sys.stderr)
         except OSError:
@@ -114,16 +117,27 @@ def append_history(history_file: Path, record: dict) -> None:
 
 
 def read_history(history_file: Path) -> list[dict]:
-    """Latest record per request_id, oldest first."""
+    """Latest record per request_id, oldest first. Rating events only add rating/rating_note/rated_at
+    to the generation they refer to: its status, timestamp and position stay as they were."""
     if not history_file.exists():
         return []
     latest: dict[str, dict] = {}
-    for raw in history_file.read_text("utf-8").splitlines():
+    # errors="replace": a line cut mid-character (disk full, killed process) must not hide the whole history
+    for raw in history_file.read_text("utf-8", errors="replace").splitlines():
         try:
             rec = json.loads(raw)
         except ValueError:
             continue
-        key = rec.get("request_id") or f"_{len(latest)}"
+        if not isinstance(rec, dict):
+            continue
+        rid = rec.get("request_id")
+        key = rid if isinstance(rid, str) and rid else f"_{len(latest)}"
+        if rec.get("event") == "rating":
+            rating = rec.get("rating")
+            if key in latest and isinstance(rating, int) and not isinstance(rating, bool) and 1 <= rating <= 5:
+                latest[key].update(rating=rating, rating_note=str(rec.get("rating_note") or ""),
+                                   rated_at=rec.get("ts"))
+            continue
         previous = latest.pop(key, {})
         latest[key] = {**previous, **rec}
     return list(latest.values())
