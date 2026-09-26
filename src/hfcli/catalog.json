@@ -1,0 +1,4006 @@
+{
+ "_meta": {
+  "source": "input_schema publicado en https://open.higgsfield.ai/models/<endpoint>/api-reference",
+  "retrieved": "2026-09-26",
+  "endpoints": 52
+ },
+ "endpoints": {
+  "alibaba/happy-horse/image-to-video": {
+   "title": "Happy Horse 1.0 — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Happy horse",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 2
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/happy-horse/reference-to-video": {
+   "title": "Happy Horse 1.0 — Reference to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Happy horse",
+    "required": [
+     "image_urls",
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 2
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "title": "Image URL",
+       "format": "uri"
+      }
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/happy-horse/text-to-video": {
+   "title": "Happy Horse 1.0 — Text to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Happy Horse",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16",
+       "1:1",
+       "4:3",
+       "3:4"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "16:9"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/happy-horse/v1.1/image-to-video": {
+   "title": "HappyHorse 1.1 — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Happy horse",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 2
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "1080p"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/happy-horse/v1.1/reference-to-video": {
+   "title": "HappyHorse 1.1 — Reference to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Happy horse",
+    "required": [
+     "image_urls",
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 2
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "title": "Image URL",
+       "format": "uri"
+      }
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "1080p"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/happy-horse/v1.1/text-to-video": {
+   "title": "HappyHorse 1.1 — Text to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Happy Horse",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "1080p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16",
+       "1:1",
+       "4:3",
+       "3:4"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "16:9"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/qwen-image-3/text-to-image": {
+   "title": "Qwen Image 3 Text to Image",
+   "output": "image",
+   "operation": "text2image",
+   "schema": {
+    "type": "object",
+    "allOf": [
+     {
+      "if": {
+       "required": [
+        "enable_thinking"
+       ],
+       "properties": {
+        "enable_thinking": {
+         "const": true
+        }
+       }
+      },
+      "then": {
+       "required": [
+        "prompt_extend"
+       ],
+       "properties": {
+        "prompt_extend": {
+         "const": true
+        }
+       }
+      }
+     }
+    ],
+    "title": "Qwen Image 3 Text to Image",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483647,
+      "minimum": 0,
+      "description": "Optional random seed for similar, reproducible results."
+     },
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Positive prompt or editing instruction in Chinese or English. Alibaba recommends at most 4,500 tokens."
+     },
+     "resolution": {
+      "enum": [
+       "1k",
+       "2k"
+      ],
+      "type": "string",
+      "default": "1k",
+      "description": "Output resolution tier. Both tiers produce PNG images."
+     },
+     "aspect_ratio": {
+      "enum": [
+       "1:1",
+       "2:3",
+       "3:2",
+       "3:4",
+       "4:3",
+       "7:9",
+       "9:7",
+       "9:16",
+       "16:9",
+       "21:9"
+      ],
+      "type": "string",
+      "default": "1:1",
+      "description": "Output aspect ratio. Exact provider-recommended dimensions are selected automatically."
+     },
+     "prompt_extend": {
+      "type": "boolean",
+      "default": true,
+      "description": "Improve the prompt before generation. Required when thinking mode is enabled."
+     },
+     "enable_thinking": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use model reasoning to improve image quality. Requires prompt enhancement."
+     },
+     "negative_prompt": {
+      "type": "string",
+      "description": "Content, styles, or artifacts to avoid in the output."
+     },
+     "prompt_extend_mode": {
+      "enum": [
+       "direct",
+       "agent"
+      ],
+      "type": "string",
+      "default": "direct",
+      "description": "Direct enhancement is available for every request; agent enhancement is text-to-image only."
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/wan-3.0-prime/image-to-video": {
+   "title": "Wan 3.0 Prime Image to Video — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 3.0 Prime Image to Video",
+    "required": [
+     "prompt",
+     "image_url"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "maximum": 2147483647,
+      "minimum": 0
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration (sec)",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 2,
+      "description": "2-30 seconds."
+     },
+     "image_url": {
+      "type": "string",
+      "title": "First Frame",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1080p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "adaptive"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "adaptive"
+     },
+     "end_image_url": {
+      "type": "string",
+      "title": "Last Frame",
+      "format": "uri"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Sound",
+      "default": true
+     },
+     "enable_thinking": {
+      "type": "boolean",
+      "title": "Deep Thinking",
+      "default": false
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/wan-3.0-prime/reference-to-video": {
+   "title": "Wan 3.0 Prime Reference to Video — Reference to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 3.0 Prime Reference to Video",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "maximum": 2147483647,
+      "minimum": 0
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration (sec)",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 2,
+      "description": "2-30 seconds."
+     },
+     "file_url": {
+      "type": "string",
+      "title": "Reference Document",
+      "format": "uri",
+      "description": "One document (docx/xlsx/pptx/pdf/md). Forces deep thinking."
+     },
+     "link_url": {
+      "type": "string",
+      "title": "Reference Web Page",
+      "format": "uri",
+      "description": "One public page. Forces deep thinking. Not combinable with file_url."
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference Audio",
+      "maxItems": 5,
+      "description": "Up to 5 files, 30s total. WAV or MP3."
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference Images",
+      "maxItems": 10
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1080p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference Videos",
+      "maxItems": 5,
+      "description": "Up to 5 clips, 30s total, each 1-30s."
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "adaptive"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "adaptive"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Sound",
+      "default": true
+     },
+     "enable_thinking": {
+      "type": "boolean",
+      "title": "Deep Thinking",
+      "default": false
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/wan-3.0-prime/text-to-video": {
+   "title": "Wan 3.0 Prime Text to Video — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 3.0 Prime Text to Video",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "maximum": 2147483647,
+      "minimum": 0
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration (sec)",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 2,
+      "description": "2-30 seconds."
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1080p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "adaptive"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "adaptive"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Sound",
+      "default": true
+     },
+     "enable_thinking": {
+      "type": "boolean",
+      "title": "Deep Thinking",
+      "default": false
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "alibaba/wan-3.0/image-to-video": {
+   "title": "Wan 3.0 Image to Video — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 3.0 Image to Video",
+    "required": [
+     "prompt",
+     "image_url"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "maximum": 2147483647,
+      "minimum": 0
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration (sec)",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 2,
+      "description": "2-30 seconds."
+     },
+     "image_url": {
+      "type": "string",
+      "title": "First Frame",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1080p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "adaptive"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "adaptive"
+     },
+     "end_image_url": {
+      "type": "string",
+      "title": "Last Frame",
+      "format": "uri"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Sound",
+      "default": true
+     },
+     "enable_thinking": {
+      "type": "boolean",
+      "title": "Deep Thinking",
+      "default": false
+     }
+    }
+   },
+   "pricing": "Priced per generated second by resolution: 480p $0.05, 720p $0.10, or 1080p $0.20. Rates shown are before any applicable customer discount."
+  },
+  "alibaba/wan-3.0/reference-to-video": {
+   "title": "Wan 3.0 Reference to Video — Reference to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 3.0 Reference to Video",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "maximum": 2147483647,
+      "minimum": 0
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration (sec)",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 2,
+      "description": "2-30 seconds."
+     },
+     "file_url": {
+      "type": "string",
+      "title": "Reference Document",
+      "format": "uri",
+      "description": "One document (docx/xlsx/pptx/pdf/md). Forces deep thinking."
+     },
+     "link_url": {
+      "type": "string",
+      "title": "Reference Web Page",
+      "format": "uri",
+      "description": "One public page. Forces deep thinking. Not combinable with file_url."
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference Audio",
+      "maxItems": 5,
+      "description": "Up to 5 files, 30s total. WAV or MP3."
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference Images",
+      "maxItems": 10
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1080p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference Videos",
+      "maxItems": 5,
+      "description": "Up to 5 clips, 30s total, each 1-30s."
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "adaptive"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "adaptive"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Sound",
+      "default": true
+     },
+     "enable_thinking": {
+      "type": "boolean",
+      "title": "Deep Thinking",
+      "default": false
+     }
+    }
+   },
+   "pricing": "Priced per generated second by resolution: 480p $0.05, 720p $0.10, or 1080p $0.20. Rates shown are before any applicable customer discount."
+  },
+  "alibaba/wan-3.0/text-to-video": {
+   "title": "Wan 3.0 Text to Video — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 3.0 Text to Video",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "maximum": 2147483647,
+      "minimum": 0
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration (sec)",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 2,
+      "description": "2-30 seconds."
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1080p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "adaptive"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "adaptive"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Sound",
+      "default": true
+     },
+     "enable_thinking": {
+      "type": "boolean",
+      "title": "Deep Thinking",
+      "default": false
+     }
+    }
+   },
+   "pricing": "Priced per generated second by resolution: 480p $0.05, 720p $0.10, or 1080p $0.20. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.0/image-to-video": {
+   "title": "Seedance 2.0 — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 4
+     },
+     "image_url": {
+      "type": "string",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p",
+       "4k"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "end_image_url": {
+      "type": "string",
+      "format": "uri"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Token-metered pricing. Billable video tokens = ceil(generated video seconds × output width × output height × 24 fps / 1024). Image and audio references do not count as video input. Per 1,000 video tokens: 480p/720p/1080p $0.014, 4K $0.008. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.0/reference-to-video": {
+   "title": "Seedance 2.0 — Reference to Video (with video reference)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "if": {
+     "required": [
+      "image_urls"
+     ]
+    },
+    "else": {
+     "required": [
+      "video_urls"
+     ]
+    },
+    "type": "object",
+    "required": [],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 4
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 3,
+      "minItems": 1
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 9,
+      "minItems": 1
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p",
+       "4k"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 3,
+      "minItems": 1
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "21:9"
+      ],
+      "type": "string",
+      "default": "16:9"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Token-metered pricing. Billable video tokens = ceil((input video seconds + generated video seconds) × output width × output height × 24 fps / 1024). Image and audio references do not count as video input. Per 1,000 video tokens: without video input — 480p/720p/1080p $0.014, 4K $0.008; with video input — 480p/720p/1080p $0.0084, 4K $0.0048 (0.6× the standard rate). With video references, both input and generated video durations are billable. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.0/text-to-video": {
+   "title": "Seedance 2.0 — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 4
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p",
+       "4k"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "21:9"
+      ],
+      "type": "string",
+      "default": "16:9"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Token-metered pricing. Billable video tokens = ceil(generated video seconds × output width × output height × 24 fps / 1024). Image and audio references do not count as video input. Per 1,000 video tokens: 480p/720p/1080p $0.014, 4K $0.008. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.5/image-to-video": {
+   "title": "Seedance 2.5 — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 4
+     },
+     "image_url": {
+      "type": "string",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "bitrate_mode": {
+      "enum": [
+       "standard",
+       "high"
+      ],
+      "type": "string",
+      "default": "high"
+     },
+     "end_image_url": {
+      "type": "string",
+      "format": "uri"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "For 16:9 video without video input, your request costs roughly $0.2056 per second of generated video at 480p, $0.4622 at 720p, and $1.1372 at 1080p. Each 1,000 video tokens costs $0.0214 at 480p or 720p and $0.0234 at 1080p. Billable video tokens = ceil(output height × output width × (input video duration + generated video duration) × 24 / 1024). Image and audio references do not count as video input. Actual pricing depends on output dimensions and billable duration. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.5/reference-to-video": {
+   "title": "Seedance 2.5 — Reference to Video (with video reference)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "if": {
+     "required": [
+      "image_urls"
+     ]
+    },
+    "else": {
+     "if": {
+      "required": [
+       "video_urls"
+      ]
+     },
+     "else": {
+      "required": [
+       "audio_urls"
+      ]
+     }
+    },
+    "type": "object",
+    "required": [],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 4
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10,
+      "minItems": 1
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 30,
+      "minItems": 1
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10,
+      "minItems": 1
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "21:9"
+      ],
+      "type": "string",
+      "default": "16:9"
+     },
+     "bitrate_mode": {
+      "enum": [
+       "standard",
+       "high"
+      ],
+      "type": "string",
+      "default": "high"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "For 16:9 video without video input, your request costs roughly $0.2056 per second of generated video at 480p, $0.4622 at 720p, and $1.1372 at 1080p. Each 1,000 video tokens costs $0.0214 at 480p or 720p and $0.0234 at 1080p. If video inputs are provided, the token rate is multiplied by 0.6: $0.01284 per 1,000 tokens at 480p or 720p and $0.01404 at 1080p. Both input and generated video durations are billable. Billable video tokens = ceil(output height × output width × (input video duration + generated video duration) × 24 / 1024). Image and audio references do not count as video input. Actual pricing depends on output dimensions and billable duration. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.5/text-to-video": {
+   "title": "Seedance 2.5 — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 4
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "21:9"
+      ],
+      "type": "string",
+      "default": "16:9"
+     },
+     "bitrate_mode": {
+      "enum": [
+       "standard",
+       "high"
+      ],
+      "type": "string",
+      "default": "high"
+     },
+     "output_format": {
+      "enum": [
+       "mp4",
+       "mov"
+      ],
+      "type": "string",
+      "default": "mp4"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "For 16:9 video without video input, your request costs roughly $0.2056 per second of generated video at 480p, $0.4622 at 720p, and $1.1372 at 1080p. Each 1,000 video tokens costs $0.0214 at 480p or 720p and $0.0234 at 1080p. Billable video tokens = ceil(output height × output width × (input video duration + generated video duration) × 24 / 1024). Image and audio references do not count as video input. Actual pricing depends on output dimensions and billable duration. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.5/video-edit": {
+   "title": "Seedance 2.5 — Video Edit",
+   "output": "video",
+   "operation": "video2video",
+   "schema": {
+    "type": "object",
+    "required": [
+     "prompt",
+     "video_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "video_url": {
+      "type": "string",
+      "format": "uri"
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10,
+      "minItems": 1
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 30,
+      "minItems": 1
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10,
+      "minItems": 1
+     },
+     "bitrate_mode": {
+      "enum": [
+       "standard",
+       "high"
+      ],
+      "type": "string",
+      "default": "high"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Video input is required. Each 1,000 video tokens costs $0.01284 at 480p or 720p and $0.01404 at 1080p (0.6× the no-video-input rate). For 16:9 output, this is roughly $0.1234 at 480p, $0.2773 at 720p, and $0.6823 at 1080p per second of combined input and generated video duration. Both input and generated video durations are billable. Billable video tokens = ceil(output height × output width × (input video duration + generated video duration) × 24 / 1024). Image and audio references do not count as video input. Actual pricing depends on output dimensions and billable duration. Rates shown are before any applicable customer discount."
+  },
+  "bytedance/seedance-2.5/video-extend": {
+   "title": "Seedance 2.5 — Video Extend",
+   "output": "video",
+   "operation": "video2video",
+   "schema": {
+    "type": "object",
+    "required": [
+     "prompt",
+     "video_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 4
+     },
+     "video_url": {
+      "type": "string",
+      "format": "uri"
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10,
+      "minItems": 1
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 30,
+      "minItems": 1
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10,
+      "minItems": 1
+     },
+     "bitrate_mode": {
+      "enum": [
+       "standard",
+       "high"
+      ],
+      "type": "string",
+      "default": "high"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Video input is required. Each 1,000 video tokens costs $0.01284 at 480p or 720p and $0.01404 at 1080p (0.6× the no-video-input rate). For 16:9 output, this is roughly $0.1234 at 480p, $0.2773 at 720p, and $0.6823 at 1080p per second of combined input and generated video duration. Both input and generated video durations are billable. Billable video tokens = ceil(output height × output width × (input video duration + generated video duration) × 24 / 1024). Image and audio references do not count as video input. Actual pricing depends on output dimensions and billable duration. Rates shown are before any applicable customer discount."
+  },
+  "higgsfield-ai/soul/standard": {
+   "title": "Soul Standard",
+   "output": "image",
+   "operation": "text2image",
+   "schema": {
+    "type": "object",
+    "title": "Soul Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "default": null,
+      "maximum": 1000000,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "style_id": {
+      "type": "string",
+      "title": "Soul Style",
+      "format": "uuid",
+      "default": null
+     },
+     "batch_size": {
+      "enum": [
+       1,
+       4
+      ],
+      "type": "integer",
+      "title": "Result images",
+      "default": 1
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "9:16",
+       "16:9",
+       "4:3",
+       "3:4",
+       "1:1",
+       "2:3",
+       "3:2"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "4:3"
+     },
+     "enhance_prompt": {
+      "type": "boolean",
+      "title": "Enhance Prompt",
+      "default": true
+     },
+     "style_strength": {
+      "type": "number",
+      "title": "Style strength",
+      "format": "float",
+      "default": 1,
+      "maximum": 1,
+      "minimum": 0
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "higgsfield-ai/soul/v2/standard": {
+   "title": "Soul 2",
+   "output": "image",
+   "operation": "text2image",
+   "schema": {
+    "type": "object",
+    "title": "Soul V2 Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "default": null,
+      "maximum": 1000000,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "style_id": {
+      "type": "string",
+      "title": "Soul Style",
+      "format": "uuid"
+     },
+     "batch_size": {
+      "enum": [
+       1,
+       4
+      ],
+      "type": "integer",
+      "title": "Result images",
+      "default": 1
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "9:16",
+       "16:9",
+       "4:3",
+       "3:4",
+       "1:1",
+       "2:3",
+       "3:2"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "4:3"
+     },
+     "enhance_prompt": {
+      "type": "boolean",
+      "title": "Enhance Prompt",
+      "default": true
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "higgsfield/cinema-studio/4.0": {
+   "title": "Cinema Studio 4.0 — Cinema Studio 4.0",
+   "output": "video",
+   "operation": "video2video",
+   "schema": {
+    "type": "object",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "era": {
+      "enum": [
+       "1960s",
+       "1980s",
+       "1990s",
+       "2000s",
+       "2020s"
+      ],
+      "type": "string"
+     },
+     "genre": {
+      "enum": [
+       "epic",
+       "drama",
+       "noir",
+       "comedy",
+       "horror",
+       "action"
+      ],
+      "type": "string"
+     },
+     "light": {
+      "enum": [
+       "silhouette",
+       "practicals",
+       "window",
+       "overhead-fall",
+       "contre-jour",
+       "soft-cross"
+      ],
+      "type": "string"
+     },
+     "pacing": {
+      "enum": [
+       "chaotic",
+       "dynamic",
+       "calm",
+       "single-shot"
+      ],
+      "type": "string"
+     },
+     "prompt": {
+      "type": "string",
+      "pattern": "\\S",
+      "minLength": 1
+     },
+     "duration": {
+      "type": "integer",
+      "default": 5,
+      "maximum": 30,
+      "minimum": 4
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 30
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "maxItems": 10
+     },
+     "camera_lens": {
+      "enum": [
+       "clean-sharp",
+       "anamorphic",
+       "vintage-anamorphic",
+       "warm-vintage",
+       "halation-vintage"
+      ],
+      "type": "string"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16",
+       "21:9"
+      ],
+      "type": "string",
+      "default": "16:9"
+     },
+     "camera_model": {
+      "enum": [
+       "modern",
+       "35mm-film",
+       "8mm-film",
+       "dv-camcorder"
+      ],
+      "type": "string"
+     },
+     "color_palette": {
+      "enum": [
+       "static-noon",
+       "twilight-fable",
+       "back-row-kissing-seats",
+       "on-the-other-side-of-the-porthole",
+       "the-emerald-ambush",
+       "highway-standoff",
+       "the-faded-fresco",
+       "oil-ochre",
+       "the-mountain-convent",
+       "ghost-in-the-code",
+       "pink-velvet",
+       "two-days-to-the-horizon",
+       "industrial-fog",
+       "stairs-go-up",
+       "field-post",
+       "home-is-the-next-gas-station",
+       "glossy-flesh",
+       "the-crimson-ballet",
+       "neon-rain-at-midnight",
+       "the-morning-after-rain",
+       "the-iron-borough",
+       "the-ground",
+       "the-investigation",
+       "turquoise-mirage",
+       "a-dream-in-color",
+       "breakfast-on-schedule",
+       "favela-gold",
+       "a-hotel-for-one",
+       "after-dark",
+       "crimson-vigi",
+       "the-neighbors-saw-everything",
+       "the-grey-channel",
+       "mirage-at-noon",
+       "bubblegum-boulevard",
+       "yellow-room",
+       "the-earth-keeps-things-reluctantly",
+       "tropic-fever-dream",
+       "bioluminescent-night",
+       "dont-turn-it-off-im-watching",
+       "the-silk-curtain-falls",
+       "the-butterfly",
+       "playtime",
+       "wallpaper-romance",
+       "overtime",
+       "the-way-home-is-longer",
+       "everyone-speaks-in-whispers",
+       "runaway-summer",
+       "amber-wasteland",
+       "the-circus",
+       "gasoline-sunset"
+      ],
+      "type": "string"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "default": true
+     },
+     "camera_aperture": {
+      "enum": [
+       "f14-wide-open",
+       "f4-moderate",
+       "f11-deep-focus"
+      ],
+      "type": "string"
+     },
+     "camera_movement": {
+      "enum": [
+       "snorricam",
+       "robot-arm",
+       "tilt-up",
+       "rack-focus",
+       "tilt-down",
+       "pov",
+       "pan-left",
+       "crane-up",
+       "pan-right",
+       "crane-down",
+       "side-tracking",
+       "pedestal-up",
+       "pedestal-down",
+       "handheld",
+       "tracking",
+       "drone-orbit",
+       "dolly-zoom",
+       "aerial-pullback",
+       "static-shot",
+       "bullet-time",
+       "whip-pan",
+       "slow-zoom-in",
+       "arc-left",
+       "slow-zoom-out",
+       "arc-right",
+       "truck-right",
+       "dolly-in",
+       "truck-left",
+       "dolly-out",
+       "slider-right",
+       "crush-zoom",
+       "slider-left",
+       "helicopter-shot"
+      ],
+      "type": "string"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Token-metered pricing. Billable video tokens = ceil((input video seconds + generated video seconds) × output width × output height × 24 fps / 1024). Image and audio references do not count as video input. At 480p or 720p, each 1,000 video tokens cost $0.0214 without video input or $0.01284 with video input (0.6× the standard rate). With video references, both input and generated video durations are billable. Rates shown are before any applicable customer discount."
+  },
+  "higgsfield/genjutsu/motion-transfer/v1.0": {
+   "title": "Genjutsu Motion Transfer — Motion Transfer",
+   "output": "video",
+   "operation": "video2video",
+   "schema": {
+    "type": "object",
+    "title": "MotionTransferParams",
+    "required": [
+     "video_url",
+     "image_urls"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "default": "",
+      "maxLength": 10000
+     },
+     "video_url": {
+      "type": "string",
+      "title": "Video Url",
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri",
+       "maxLength": 2083,
+       "minLength": 1
+      },
+      "title": "Image Urls",
+      "maxItems": 8,
+      "minItems": 1
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "480p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Per-second pricing. Each second of input video costs $0.318 at 480p or $0.681 at 720p. Input duration is rounded up to the nearest whole second. Rates shown are before any applicable customer discount."
+  },
+  "higgsfield/genjutsu/object-swap/v1.0": {
+   "title": "Genjutsu Object Swap — Object Swap",
+   "output": "video",
+   "operation": "video2video",
+   "schema": {
+    "type": "object",
+    "title": "ObjectSwapParams",
+    "required": [
+     "video_url",
+     "image_urls"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "default": "",
+      "maxLength": 10000
+     },
+     "video_url": {
+      "type": "string",
+      "title": "Video Url",
+      "format": "uri",
+      "maxLength": 2083,
+      "minLength": 1
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri",
+       "maxLength": 2083,
+       "minLength": 1
+      },
+      "title": "Image Urls",
+      "maxItems": 8,
+      "minItems": 1
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "480p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Per-second pricing. Each second of input video costs $0.318 at 480p or $0.681 at 720p. Input duration is rounded up to the nearest whole second. Rates shown are before any applicable customer discount."
+  },
+  "ideogram/v4.0": {
+   "title": "Ideogram 4.0",
+   "output": "image",
+   "operation": "image_edit",
+   "schema": {
+    "type": "object",
+    "title": "Ideogram 4.0 Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "maxLength": 2048,
+      "minLength": 2,
+      "description": "Write your prompt here"
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Input image",
+      "format": "uri"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "1:1",
+       "1:2",
+       "2:1",
+       "2:3",
+       "3:2",
+       "4:5",
+       "5:4",
+       "9:16",
+       "16:9",
+       "5:8",
+       "8:5",
+       "3:4",
+       "4:3",
+       "9:22",
+       "22:9",
+       "9:23",
+       "23:9",
+       "3:8",
+       "8:3",
+       "5:12",
+       "12:5",
+       "1:3",
+       "3:1"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "1:1"
+     },
+     "image_weight": {
+      "type": "integer",
+      "title": "Image weight",
+      "maximum": 100,
+      "minimum": 1,
+      "description": "How strongly the output should preserve the input image."
+     },
+     "rendering_speed": {
+      "enum": [
+       "TURBO",
+       "DEFAULT",
+       "QUALITY"
+      ],
+      "type": "string",
+      "title": "Rendering speed",
+      "default": "DEFAULT"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0-turbo/image-to-video": {
+   "title": "Kling 3.0 Turbo — Image to Video (Turbo)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Turbo",
+    "required": [
+     "prompt",
+     "image_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0-turbo/text-to-video": {
+   "title": "Kling 3.0 Turbo — Text to Video (Turbo)",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Turbo",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16",
+       "1:1"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0/4k/image-to-video": {
+   "title": "Kling 3.0 4k — Image to Video (4K)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Playground",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "sound": {
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string",
+      "title": "Generate sound",
+      "default": "on"
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "elements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "cfg_scale": {
+      "type": "number",
+      "title": "CFG Scale",
+      "default": 0.5,
+      "maximum": 1,
+      "minimum": 0,
+      "multipleOf": 0.01
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "multi_shots": {
+      "type": "boolean",
+      "default": false
+     },
+     "multi_prompt": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "prompt": {
+         "type": "string",
+         "maxLength": 512
+        },
+        "duration": {
+         "type": "integer",
+         "maximum": 15,
+         "minimum": 1
+        }
+       }
+      },
+      "maxItems": 6,
+      "minItems": 0
+     },
+     "last_image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0/4k/text-to-video": {
+   "title": "Kling 3.0 — Text to Video (4K)",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Playground",
+    "properties": {
+     "sound": {
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string",
+      "title": "Generate sound",
+      "default": "on"
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "elements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "cfg_scale": {
+      "type": "number",
+      "title": "CFG Scale",
+      "default": 0.5,
+      "maximum": 1,
+      "minimum": 0,
+      "multipleOf": 0.01
+     },
+     "multi_shots": {
+      "type": "boolean",
+      "default": false
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16",
+       "1:1"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     },
+     "multi_prompt": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "prompt": {
+         "type": "string",
+         "maxLength": 512
+        },
+        "duration": {
+         "type": "integer",
+         "maximum": 15,
+         "minimum": 1
+        }
+       }
+      },
+      "maxItems": 6,
+      "minItems": 0
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0/pro/image-to-video": {
+   "title": "Kling 3.0 Pro — Image to Video (Pro)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Playground",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "sound": {
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string",
+      "title": "Generate sound",
+      "default": "on"
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "elements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "cfg_scale": {
+      "type": "number",
+      "title": "CFG Scale",
+      "default": 0.5,
+      "maximum": 1,
+      "minimum": 0,
+      "multipleOf": 0.01
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "multi_shots": {
+      "type": "boolean",
+      "default": false
+     },
+     "multi_prompt": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "prompt": {
+         "type": "string",
+         "maxLength": 512
+        },
+        "duration": {
+         "type": "integer",
+         "maximum": 15,
+         "minimum": 1
+        }
+       }
+      },
+      "maxItems": 6,
+      "minItems": 0
+     },
+     "last_image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0/pro/text-to-video": {
+   "title": "Kling 3.0 Pro — Text to Video (Pro)",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Playground",
+    "properties": {
+     "sound": {
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string",
+      "title": "Generate sound",
+      "default": "on"
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "elements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "cfg_scale": {
+      "type": "number",
+      "title": "CFG Scale",
+      "default": 0.5,
+      "maximum": 1,
+      "minimum": 0,
+      "multipleOf": 0.01
+     },
+     "multi_shots": {
+      "type": "boolean",
+      "default": false
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16",
+       "1:1"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     },
+     "multi_prompt": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "prompt": {
+         "type": "string",
+         "maxLength": 512
+        },
+        "duration": {
+         "type": "integer",
+         "maximum": 15,
+         "minimum": 1
+        }
+       }
+      },
+      "maxItems": 6,
+      "minItems": 0
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0/std/image-to-video": {
+   "title": "Kling 3.0 Standard — Image to Video (Standard)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Playground",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "sound": {
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string",
+      "title": "Generate sound",
+      "default": "on"
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "elements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "cfg_scale": {
+      "type": "number",
+      "title": "CFG Scale",
+      "default": 0.5,
+      "maximum": 1,
+      "minimum": 0,
+      "multipleOf": 0.01
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "multi_shots": {
+      "type": "boolean",
+      "default": false
+     },
+     "multi_prompt": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "prompt": {
+         "type": "string",
+         "maxLength": 512
+        },
+        "duration": {
+         "type": "integer",
+         "maximum": 15,
+         "minimum": 1
+        }
+       }
+      },
+      "maxItems": 6,
+      "minItems": 1
+     },
+     "last_image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3.0/std/text-to-video": {
+   "title": "Kling 3.0 Standard — Text to Video (Standard)",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling 3.0 Playground",
+    "properties": {
+     "sound": {
+      "enum": [
+       "on",
+       "off"
+      ],
+      "type": "string",
+      "title": "Generate sound",
+      "default": "on"
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 3
+     },
+     "elements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "cfg_scale": {
+      "type": "number",
+      "title": "CFG Scale",
+      "default": 0.5,
+      "maximum": 1,
+      "minimum": 0,
+      "multipleOf": 0.01
+     },
+     "multi_shots": {
+      "type": "boolean",
+      "default": false
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16",
+       "1:1"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     },
+     "multi_prompt": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "prompt": {
+         "type": "string",
+         "maxLength": 512
+        },
+        "duration": {
+         "type": "integer",
+         "maximum": 15,
+         "minimum": 1
+        }
+       }
+      },
+      "maxItems": 6,
+      "minItems": 1
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3/motion-control/pro": {
+   "title": "Kling 3.0 — Motion Control (Pro)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling V3 Motion Control Playground",
+    "required": [
+     "image_url",
+     "video_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "default": "",
+      "description": "Write your prompt here"
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "video_url": {
+      "type": "string",
+      "title": "Video URL",
+      "format": "uri"
+     },
+     "keep_original_sound": {
+      "enum": [
+       "yes",
+       "no"
+      ],
+      "type": "string",
+      "title": "Keep original sound",
+      "default": "yes"
+     },
+     "character_orientation": {
+      "enum": [
+       "image",
+       "video"
+      ],
+      "type": "string",
+      "title": "Character orientation",
+      "default": "video",
+      "description": "Generate the orientation of the characters in the video, which can be selected to match the image or the video"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "kling-video/v3/motion-control/std": {
+   "title": "Kling 3.0 — Motion Control (Standard)",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Kling V3 Motion Control Playground",
+    "required": [
+     "image_url",
+     "video_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "default": "",
+      "description": "Write your prompt here"
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "video_url": {
+      "type": "string",
+      "title": "Video URL",
+      "format": "uri"
+     },
+     "keep_original_sound": {
+      "enum": [
+       "yes",
+       "no"
+      ],
+      "type": "string",
+      "title": "Keep original sound",
+      "default": "yes"
+     },
+     "character_orientation": {
+      "enum": [
+       "image",
+       "video"
+      ],
+      "type": "string",
+      "title": "Character orientation",
+      "default": "video",
+      "description": "Generate the orientation of the characters in the video, which can be selected to match the image or the video"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "lightricks/ltx-2.5/image-to-video/fast": {
+   "title": "LTX-2.5 Fast — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "LTX-2.5 Fast Image to Video Playground",
+    "required": [
+     "prompt",
+     "duration",
+     "image_url"
+    ],
+    "properties": {
+     "fps": {
+      "enum": [
+       24,
+       25,
+       48,
+       50
+      ],
+      "type": "integer",
+      "title": "Frames per second",
+      "default": 25
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "maxLength": 5000,
+      "minLength": 2,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "enum": [
+       6,
+       8,
+       10
+      ],
+      "type": "integer",
+      "title": "Duration",
+      "default": 6
+     },
+     "image_url": {
+      "type": "string",
+      "title": "First frame",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p",
+       "2k",
+       "4k"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     },
+     "end_image_url": {
+      "type": "string",
+      "title": "Last frame",
+      "format": "uri"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Generate audio",
+      "default": true
+     },
+     "camera_movement": {
+      "enum": [
+       "dolly_in",
+       "dolly_out",
+       "dolly_left",
+       "dolly_right",
+       "jib_up",
+       "jib_down",
+       "static",
+       "focus_shift"
+      ],
+      "type": "string",
+      "title": "Camera movement"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "lightricks/ltx-2.5/image-to-video/pro": {
+   "title": "LTX-2.5 Pro — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "LTX-2.5 Pro Image to Video Playground",
+    "required": [
+     "prompt",
+     "duration",
+     "image_url"
+    ],
+    "properties": {
+     "fps": {
+      "enum": [
+       24,
+       25,
+       50
+      ],
+      "type": "integer",
+      "title": "Frames per second",
+      "default": 25
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "maxLength": 5000,
+      "minLength": 2,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "enum": [
+       6,
+       8,
+       10
+      ],
+      "type": "integer",
+      "title": "Duration",
+      "default": 6
+     },
+     "image_url": {
+      "type": "string",
+      "title": "First frame",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     },
+     "end_image_url": {
+      "type": "string",
+      "title": "Last frame",
+      "format": "uri"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Generate audio",
+      "default": true
+     },
+     "camera_movement": {
+      "enum": [
+       "dolly_in",
+       "dolly_out",
+       "dolly_left",
+       "dolly_right",
+       "jib_up",
+       "jib_down",
+       "static",
+       "focus_shift"
+      ],
+      "type": "string",
+      "title": "Camera movement"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "lightricks/ltx-2.5/text-to-video/fast": {
+   "title": "LTX-2.5 Fast — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "LTX-2.5 Fast Text to Video Playground",
+    "required": [
+     "prompt",
+     "duration"
+    ],
+    "properties": {
+     "fps": {
+      "enum": [
+       24,
+       25,
+       48,
+       50
+      ],
+      "type": "integer",
+      "title": "Frames per second",
+      "default": 25
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "maxLength": 5000,
+      "minLength": 2,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "enum": [
+       6,
+       8,
+       10
+      ],
+      "type": "integer",
+      "title": "Duration",
+      "default": 6
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p",
+       "2k",
+       "4k"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Generate audio",
+      "default": true
+     },
+     "camera_movement": {
+      "enum": [
+       "dolly_in",
+       "dolly_out",
+       "dolly_left",
+       "dolly_right",
+       "jib_up",
+       "jib_down",
+       "static",
+       "focus_shift"
+      ],
+      "type": "string",
+      "title": "Camera movement"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "lightricks/ltx-2.5/text-to-video/pro": {
+   "title": "LTX-2.5 Pro — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "LTX-2.5 Pro Text to Video Playground",
+    "required": [
+     "prompt",
+     "duration"
+    ],
+    "properties": {
+     "fps": {
+      "enum": [
+       24,
+       25,
+       50
+      ],
+      "type": "integer",
+      "title": "Frames per second",
+      "default": 25
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "maxLength": 5000,
+      "minLength": 2,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "enum": [
+       6,
+       8,
+       10
+      ],
+      "type": "integer",
+      "title": "Duration",
+      "default": 6
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "16:9"
+     },
+     "generate_audio": {
+      "type": "boolean",
+      "title": "Generate audio",
+      "default": true
+     },
+     "camera_movement": {
+      "enum": [
+       "dolly_in",
+       "dolly_out",
+       "dolly_left",
+       "dolly_right",
+       "jib_up",
+       "jib_down",
+       "static",
+       "focus_shift"
+      ],
+      "type": "string",
+      "title": "Camera movement"
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "marketing-studio/image": {
+   "title": "Marketing Studio Image (2.0 Alpha)",
+   "output": "image",
+   "operation": "image_edit",
+   "schema": {
+    "type": "object",
+    "allOf": [
+     {
+      "if": {
+       "required": [
+        "enhance_prompt"
+       ],
+       "properties": {
+        "enhance_prompt": {
+         "const": true
+        }
+       }
+      },
+      "then": {
+       "required": [
+        "preset_id",
+        "image_urls"
+       ],
+       "properties": {
+        "quality": {
+         "const": "high"
+        },
+        "image_urls": {
+         "maxItems": 2,
+         "minItems": 1
+        }
+       }
+      }
+     }
+    ],
+    "title": "Marketing Studio Image",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "maxLength": 5000,
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "quality": {
+      "enum": [
+       "low",
+       "medium",
+       "high"
+      ],
+      "type": "string",
+      "default": "high"
+     },
+     "preset_id": {
+      "type": "string",
+      "title": "Preset ID",
+      "format": "uuid"
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Image URLs",
+      "maxItems": 16,
+      "minItems": 0
+     },
+     "moderation": {
+      "enum": [
+       "auto",
+       "low"
+      ],
+      "type": "string",
+      "default": "auto"
+     },
+     "resolution": {
+      "enum": [
+       "1k",
+       "2k",
+       "4k"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "2k"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "auto",
+       "1:1",
+       "3:2",
+       "2:3",
+       "4:3",
+       "3:4",
+       "16:9",
+       "9:16",
+       "21:9"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "auto"
+     },
+     "enhance_prompt": {
+      "type": "boolean",
+      "title": "Enhance prompt",
+      "default": false
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "minimax/h3/image-to-video": {
+   "title": "MiniMax H3 — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "MiniMax H3 Image to Video Playground",
+    "required": [
+     "prompt",
+     "image_url"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 5
+     },
+     "image_url": {
+      "type": "string",
+      "title": "First frame URL",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "2K"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "2K"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "auto",
+       "adaptive",
+       "21:9",
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "auto"
+     },
+     "end_image_url": {
+      "type": "string",
+      "title": "Last frame URL",
+      "format": "uri"
+     },
+     "aigc_watermark": {
+      "type": "boolean",
+      "title": "AIGC watermark",
+      "default": false
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "minimax/h3/reference-to-video": {
+   "title": "MiniMax H3 — Reference to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "if": {
+     "required": [
+      "image_urls"
+     ]
+    },
+    "else": {
+     "required": [
+      "video_urls"
+     ]
+    },
+    "type": "object",
+    "title": "MiniMax H3 Reference to Video Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 5
+     },
+     "audio_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference audio URLs",
+      "maxItems": 3,
+      "minItems": 0
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference image URLs",
+      "maxItems": 9,
+      "minItems": 1
+     },
+     "resolution": {
+      "enum": [
+       "2K"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "2K"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uri"
+      },
+      "title": "Reference video URLs",
+      "maxItems": 3,
+      "minItems": 1
+     },
+     "aspect_ratio": {
+      "enum": [
+       "auto",
+       "adaptive",
+       "21:9",
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "auto"
+     },
+     "aigc_watermark": {
+      "type": "boolean",
+      "title": "AIGC watermark",
+      "default": false
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "2K output costs $0.13 per generated second. The first five reference images are included; each additional reference image costs $0.08. Rates shown are before any applicable customer discount."
+  },
+  "minimax/h3/text-to-video": {
+   "title": "MiniMax H3 — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "MiniMax H3 Text to Video Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 5
+     },
+     "resolution": {
+      "enum": [
+       "2K"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "2K"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "auto",
+       "adaptive",
+       "21:9",
+       "16:9",
+       "4:3",
+       "1:1",
+       "3:4",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "auto"
+     },
+     "aigc_watermark": {
+      "type": "boolean",
+      "title": "AIGC watermark",
+      "default": false
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "recraft/v4.1/text-to-image": {
+   "title": "Recraft V4.1 Text to Image",
+   "output": "image",
+   "operation": "text2image",
+   "schema": {
+    "type": "object",
+    "title": "Recraft V4.1 Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "colors": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "rgb"
+       ],
+       "properties": {
+        "rgb": {
+         "type": "array",
+         "items": {
+          "type": "integer",
+          "maximum": 255,
+          "minimum": 0
+         },
+         "maxItems": 3,
+         "minItems": 3
+        }
+       }
+      },
+      "title": "Colors"
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "maxLength": 10000,
+      "minLength": 1,
+      "description": "Write your prompt here"
+     },
+     "resolution": {
+      "enum": [
+       "1k"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1k"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "1:1",
+       "2:1",
+       "1:2",
+       "3:2",
+       "2:3",
+       "4:3",
+       "3:4",
+       "5:4",
+       "4:5",
+       "6:10",
+       "14:10",
+       "10:14",
+       "16:9",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect ratio",
+      "default": "1:1"
+     },
+     "output_format": {
+      "enum": [
+       "jpg",
+       "png",
+       "webp"
+      ],
+      "type": "string",
+      "title": "Output format",
+      "default": "jpg"
+     },
+     "background_color": {
+      "type": "object",
+      "title": "Background color",
+      "required": [
+       "rgb"
+      ],
+      "properties": {
+       "rgb": {
+        "type": "array",
+        "items": {
+         "type": "integer",
+         "maximum": 255,
+         "minimum": 0
+        },
+        "maxItems": 3,
+        "minItems": 3
+       }
+      }
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "wan/v2.7/image-to-video": {
+   "title": "Wan 2.7 — Image to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 2.6 Playground",
+    "required": [
+     "image_url"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 2
+     },
+     "audio_url": {
+      "type": "string",
+      "title": "Audio URL",
+      "format": "uri"
+     },
+     "image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "end_image_url": {
+      "type": "string",
+      "title": "Image URL",
+      "format": "uri"
+     },
+     "prompt_extend": {
+      "type": "boolean",
+      "default": false
+     },
+     "negative_prompt": {
+      "type": "string",
+      "title": "Negative prompt",
+      "default": ""
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "wan/v2.7/reference-to-video": {
+   "title": "Wan 2.7 — Reference to Video",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "if": {
+     "required": [
+      "image_urls"
+     ],
+     "properties": {
+      "image_urls": {
+       "type": "array",
+       "minItems": 1
+      }
+     }
+    },
+    "else": {
+     "required": [
+      "video_urls"
+     ],
+     "properties": {
+      "video_urls": {
+       "type": "array",
+       "minItems": 1
+      }
+     }
+    },
+    "type": "object",
+    "title": "Wan 2.7 References",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 10,
+      "minimum": 2
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "title": "Image",
+       "format": "uri"
+      }
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "video_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "title": "Video",
+       "format": "uri"
+      }
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "16:9"
+     },
+     "prompt_extend": {
+      "type": "boolean",
+      "default": false
+     },
+     "negative_prompt": {
+      "type": "string",
+      "title": "Negative prompt",
+      "default": ""
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "wan/v2.7/text-to-video": {
+   "title": "Wan 2.7 — Text to Video",
+   "output": "video",
+   "operation": "text2video",
+   "schema": {
+    "type": "object",
+    "title": "Wan 2.6 Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483646,
+      "minimum": 1
+     },
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 2
+     },
+     "audio_url": {
+      "type": "string",
+      "title": "Audio URL",
+      "format": "uri"
+     },
+     "resolution": {
+      "enum": [
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "default": "720p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "16:9",
+       "9:16",
+       "1:1",
+       "4:3",
+       "3:4"
+      ],
+      "type": "string",
+      "title": "Aspect Ratio",
+      "default": "16:9"
+     },
+     "prompt_extend": {
+      "type": "boolean",
+      "default": false
+     },
+     "negative_prompt": {
+      "type": "string",
+      "title": "Negative prompt",
+      "default": ""
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "xai/grok-imagine-image-2.0": {
+   "title": "Grok Imagine 2.0",
+   "output": "image",
+   "operation": "image_edit",
+   "schema": {
+    "type": "object",
+    "title": "Grok Imagine 2.0 Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "quality": {
+      "enum": [
+       "low",
+       "medium"
+      ],
+      "type": "string",
+      "title": "Quality",
+      "default": "medium"
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "title": "Image",
+       "format": "uri"
+      },
+      "title": "Input Images",
+      "maxItems": 10,
+      "minItems": 0
+     },
+     "resolution": {
+      "enum": [
+       "1k",
+       "2k"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "1k"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "auto",
+       "1:1",
+       "1:2",
+       "2:1",
+       "3:2",
+       "2:3",
+       "4:3",
+       "3:4",
+       "16:9",
+       "9:16"
+      ],
+      "type": "string",
+      "default": "auto"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "xai/grok-imagine-video/v1.5/reference-to-video": {
+   "title": "Grok Imagine Video 1.5 — Grok Imagine Video 1.5",
+   "output": "video",
+   "operation": "image2video",
+   "schema": {
+    "type": "object",
+    "title": "Grok Imagine Video 1.5 Reference Playground",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Write your prompt here"
+     },
+     "duration": {
+      "type": "integer",
+      "title": "Duration",
+      "default": 5,
+      "maximum": 15,
+      "minimum": 1
+     },
+     "audio_url": {
+      "type": "string",
+      "title": "Reference audio",
+      "format": "uri"
+     },
+     "image_url": {
+      "type": "string",
+      "title": "First-frame image",
+      "format": "uri"
+     },
+     "image_urls": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "title": "Image",
+       "format": "uri"
+      },
+      "title": "Reference images",
+      "maxItems": 7,
+      "minItems": 0
+     },
+     "resolution": {
+      "enum": [
+       "480p",
+       "720p",
+       "1080p"
+      ],
+      "type": "string",
+      "title": "Resolution",
+      "default": "480p"
+     },
+     "aspect_ratio": {
+      "enum": [
+       "auto",
+       "1:1",
+       "16:9",
+       "9:16",
+       "4:3",
+       "3:4",
+       "3:2",
+       "2:3"
+      ],
+      "type": "string",
+      "default": "auto"
+     }
+    }
+   },
+   "pricing": "Public pricing information is not available for this model."
+  },
+  "z-image/turbo": {
+   "title": "Z-Image Turbo",
+   "output": "image",
+   "operation": "text2image",
+   "schema": {
+    "type": "object",
+    "title": "Z-Image Turbo",
+    "required": [
+     "prompt"
+    ],
+    "properties": {
+     "seed": {
+      "type": "integer",
+      "maximum": 2147483647,
+      "minimum": 0,
+      "description": "Optional random seed for similar, reproducible results."
+     },
+     "prompt": {
+      "type": "string",
+      "maxLength": 800,
+      "minLength": 1,
+      "description": "Positive prompt describing the desired content, style, and composition."
+     },
+     "resolution": {
+      "enum": [
+       "1k",
+       "2k"
+      ],
+      "type": "string",
+      "default": "1k",
+      "description": "Output resolution tier. Both tiers produce PNG images."
+     },
+     "aspect_ratio": {
+      "enum": [
+       "1:1",
+       "2:3",
+       "3:2",
+       "3:4",
+       "4:3",
+       "7:9",
+       "9:7",
+       "9:16",
+       "16:9",
+       "21:9"
+      ],
+      "type": "string",
+      "default": "1:1",
+      "description": "Output aspect ratio. Exact provider-recommended dimensions are selected automatically."
+     },
+     "prompt_extend": {
+      "type": "boolean",
+      "default": false,
+      "description": "Rewrite and reason over the prompt before generation; this uses the enhanced price tier."
+     }
+    },
+    "additionalProperties": false
+   },
+   "pricing": "Public pricing information is not available for this model."
+  }
+ },
+ "aliases": {
+  "cinema-studio": "higgsfield/cinema-studio/4.0",
+  "genjutsu": "higgsfield/genjutsu/motion-transfer/v1.0",
+  "genjutsu-swap": "higgsfield/genjutsu/object-swap/v1.0",
+  "grok-image": "xai/grok-imagine-image-2.0",
+  "grok-video": "xai/grok-imagine-video/v1.5/reference-to-video",
+  "happy-horse": "alibaba/happy-horse/v1.1/text-to-video",
+  "happy-horse-1.0": "alibaba/happy-horse/text-to-video",
+  "happy-horse-1.0-i2v": "alibaba/happy-horse/image-to-video",
+  "happy-horse-1.0-ref": "alibaba/happy-horse/reference-to-video",
+  "happy-horse-i2v": "alibaba/happy-horse/v1.1/image-to-video",
+  "happy-horse-ref": "alibaba/happy-horse/v1.1/reference-to-video",
+  "ideogram-4": "ideogram/v4.0",
+  "kling-3": "kling-video/v3.0/std/text-to-video",
+  "kling-3-4k": "kling-video/v3.0/4k/text-to-video",
+  "kling-3-4k-i2v": "kling-video/v3.0/4k/image-to-video",
+  "kling-3-i2v": "kling-video/v3.0/std/image-to-video",
+  "kling-3-motion": "kling-video/v3/motion-control/std",
+  "kling-3-motion-pro": "kling-video/v3/motion-control/pro",
+  "kling-3-pro": "kling-video/v3.0/pro/text-to-video",
+  "kling-3-pro-i2v": "kling-video/v3.0/pro/image-to-video",
+  "kling-3-turbo": "kling-video/v3.0-turbo/text-to-video",
+  "kling-3-turbo-i2v": "kling-video/v3.0-turbo/image-to-video",
+  "ltx-fast": "lightricks/ltx-2.5/text-to-video/fast",
+  "ltx-fast-i2v": "lightricks/ltx-2.5/image-to-video/fast",
+  "ltx-pro": "lightricks/ltx-2.5/text-to-video/pro",
+  "ltx-pro-i2v": "lightricks/ltx-2.5/image-to-video/pro",
+  "marketing-image": "marketing-studio/image",
+  "minimax-h3": "minimax/h3/text-to-video",
+  "minimax-h3-i2v": "minimax/h3/image-to-video",
+  "minimax-h3-ref": "minimax/h3/reference-to-video",
+  "qwen-image-3": "alibaba/qwen-image-3/text-to-image",
+  "recraft-4.1": "recraft/v4.1/text-to-image",
+  "seedance-2.0": "bytedance/seedance-2.0/text-to-video",
+  "seedance-2.0-i2v": "bytedance/seedance-2.0/image-to-video",
+  "seedance-2.0-ref": "bytedance/seedance-2.0/reference-to-video",
+  "seedance-2.5": "bytedance/seedance-2.5/text-to-video",
+  "seedance-2.5-edit": "bytedance/seedance-2.5/video-edit",
+  "seedance-2.5-extend": "bytedance/seedance-2.5/video-extend",
+  "seedance-2.5-i2v": "bytedance/seedance-2.5/image-to-video",
+  "seedance-2.5-ref": "bytedance/seedance-2.5/reference-to-video",
+  "soul": "higgsfield-ai/soul/standard",
+  "soul-2": "higgsfield-ai/soul/v2/standard",
+  "wan-2.7": "wan/v2.7/text-to-video",
+  "wan-2.7-i2v": "wan/v2.7/image-to-video",
+  "wan-2.7-ref": "wan/v2.7/reference-to-video",
+  "wan-3": "alibaba/wan-3.0/text-to-video",
+  "wan-3-i2v": "alibaba/wan-3.0/image-to-video",
+  "wan-3-prime": "alibaba/wan-3.0-prime/text-to-video",
+  "wan-3-prime-i2v": "alibaba/wan-3.0-prime/image-to-video",
+  "wan-3-prime-ref": "alibaba/wan-3.0-prime/reference-to-video",
+  "wan-3-ref": "alibaba/wan-3.0/reference-to-video",
+  "z-image": "z-image/turbo"
+ },
+ "presets": {
+  "product-shots": {
+   "endpoint": "marketing-studio/image",
+   "defaults": {
+    "enhance_prompt": true,
+    "quality": "high",
+    "preset_id": "05d695d1-ea1f-5d1a-92ef-1ed8642558b5"
+   },
+   "note": "Workflow Product Shots. Preset de ejemplo 'Fruit Orbit'; cámbialo con preset_id=... (lista: hf presets). Requiere 1-2 image_urls (producto y, opcional, modelo)."
+  },
+  "graphic-ads": {
+   "endpoint": "marketing-studio/image",
+   "defaults": {
+    "enhance_prompt": true,
+    "quality": "high",
+    "preset_id": "ef84af61-57cd-5f2e-b3ca-209d8038563c"
+   },
+   "note": "Workflow Graphic Ads. Preset de ejemplo 'Ticket Stack'; cámbialo con preset_id=... Requiere 1-2 image_urls."
+  },
+  "marketplace-design": {
+   "endpoint": "marketing-studio/image",
+   "defaults": {
+    "enhance_prompt": true,
+    "quality": "high",
+    "preset_id": "f188a40a-098a-5fb3-bffc-eedfeaf9ecd7"
+   },
+   "note": "Workflow Marketplace Design. Preset de ejemplo 'Circle Punch'; cámbialo con preset_id=... Requiere 1-2 image_urls."
+  }
+ }
+}
