@@ -1,0 +1,12 @@
+# Secrets: never commit real credentials
+.env
+.env.*
+!.env.example
+
+# Local artifacts
+.venv/
+output/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.DS_Store
