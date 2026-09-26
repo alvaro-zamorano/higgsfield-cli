@@ -9,7 +9,7 @@ Código en GitHub (privado): `alvaro-zamorano/higgsfield-cli`. En cualquier orde
 
 - **Binario:** `~/.higgsfield-cli/venv/bin/hf` (Windows: `~\.higgsfield-cli\venv\Scripts\hf.exe`).
 - **Configuración:** `~/.higgsfield-cli/.env.local`, con `HF_KEY` y, opcionalmente, `CLOUDINARY_URL`.
-- **Salidas:** `~/.higgsfield-cli/output/AAAA-MM-DD/`. Historial: `~/.higgsfield-cli/output/history.jsonl`.
+- **Salidas:** `~/.higgsfield-cli/output/AAAA-MM-DD/`. Historial: `~/.higgsfield-cli/output/history.jsonl`. Con `CLOUDINARY_URL` configurada, además hay una copia en Cloudinary en `higgsfield/AAAA-MM-DD/`.
 
 Llama siempre a `hf` por su ruta. Ese nombre coincide con la CLI de Hugging Face, así que un `hf` a secas en el `PATH` puede ser otra cosa.
 
