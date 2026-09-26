@@ -20,23 +20,24 @@ Requisitos: Python 3.9 o superior y git con acceso a tu GitHub (el repo es priva
 ```bash
 python3 -m venv ~/.higgsfield-cli/venv
 ~/.higgsfield-cli/venv/bin/pip install -q -U pip
-~/.higgsfield-cli/venv/bin/pip install -q "higgsfield-cli[cloudinary] @ git+https://github.com/alvaro-zamorano/higgsfield-cli.git"
+~/.higgsfield-cli/venv/bin/pip install -q "higgsfield-cli[cloudinary,mcp] @ git+https://github.com/alvaro-zamorano/higgsfield-cli.git"
 ~/.higgsfield-cli/venv/bin/hf init --open      # crea ~/.higgsfield-cli/.env.local: pon HF_KEY (y CLOUDINARY_URL)
 ~/.higgsfield-cli/venv/bin/hf doctor           # comprueba todo sin gastar créditos
+~/.higgsfield-cli/venv/bin/hf mcp install      # opcional: que Claude pueda usarlo (ver abajo)
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
 py -m venv $HOME\.higgsfield-cli\venv
-& $HOME\.higgsfield-cli\venv\Scripts\pip install -q "higgsfield-cli[cloudinary] @ git+https://github.com/alvaro-zamorano/higgsfield-cli.git"
+& $HOME\.higgsfield-cli\venv\Scripts\pip install -q "higgsfield-cli[cloudinary,mcp] @ git+https://github.com/alvaro-zamorano/higgsfield-cli.git"
 & $HOME\.higgsfield-cli\venv\Scripts\hf init --open
 & $HOME\.higgsfield-cli\venv\Scripts\hf doctor
 ```
 
 **Actualizar** a la última versión de `main`: repite el `pip install` añadiendo `--upgrade --force-reinstall --no-deps`.
 
-**Desarrollo** (con el repo clonado): `~/.higgsfield-cli/venv/bin/pip install -e '.[cloudinary,dev]'` desde la carpeta del repo. Así los cambios en el código se aplican sin reinstalar.
+**Desarrollo** (con el repo clonado): `~/.higgsfield-cli/venv/bin/pip install -e '.[cloudinary,mcp,dev]'` desde la carpeta del repo. Así los cambios en el código se aplican sin reinstalar.
 
 **Nombre del comando.** `hf` coincide con la CLI de Hugging Face, así que no lo pongo en el `PATH`. Llámalo por su ruta (`~/.higgsfield-cli/venv/bin/hf`), que es lo que deben usar scripts y agentes (AgentOS, launchd). Si quieres un atajo en tu terminal, usa un alias con otro nombre, por ejemplo `alias higgs="$HOME/.higgsfield-cli/venv/bin/hf"`.
 
@@ -55,6 +56,7 @@ hf gen soul-2 "editorial portrait" batch_size=4 --dry-run   # valida y muestra l
 
 hf batch jobs.jsonl --concurrency 2
 hf history
+hf spend --days 7                 # lanzadas, cobradas y USD estimado por modelo
 hf result <request_id>            # recuperar una petición (timeout, corte, Ctrl+C)
 hf status <request_id> · hf cancel <request_id> · hf upload archivo.png · hf presets
 ```
@@ -75,6 +77,15 @@ Antes de lanzar nada se validan todos los trabajos y se suben los archivos. Si u
 
 **`--json`** imprime un único objeto con `ok`, `status`, `request_id`, `outputs[].url|file|cloudinary_url`, `error` y `warnings`. El progreso va por stderr, así que stdout queda limpio para scripts.
 
+### Control del gasto
+
+- **Coste antes de lanzar.** `hf gen` muestra el coste estimado antes de enviar, y `--dry-run` lo incluye sin gastar nada.
+- **Qué modelos tienen estimación.** Seedance 2.5 (texto, imagen y referencias sin vídeo de entrada), Wan 3.0 y MiniMax H3 referencias. Salen de los precios públicos, antes de descuentos.
+- **Qué modelos no.** Los que Higgsfield no publica (Z-Image, Soul, Kling…) aparecen como «sin precio».
+- **Gasto acumulado.** `hf spend` suma por modelo lo lanzado, lo completado, lo que no se cobra (fallos y NSFW, según la FAQ de Higgsfield) y lo pendiente.
+- **Importe real.** Está en open.higgsfield.ai/usage.
+- **Freno duro.** El saldo de la API es de prepago: solo se gasta lo que recargas.
+
 ### Códigos de salida
 
 | Código | Significado |
@@ -83,6 +94,28 @@ Antes de lanzar nada se validan todos los trabajos y se suben los archivos. Si u
 | 1 | No generado: `failed`, `nsfw`, `canceled`, error de API o de red, timeout |
 | 2 | Uso o configuración: parámetros inválidos, falta clave, archivo inexistente (no se ha gastado nada) |
 | 3 | Generado, pero falló la descarga o Cloudinary (la URL está en la salida y en el historial) |
+
+## Usar hf desde Claude (servidor MCP)
+
+`hf mcp install` registra el servidor en la app de Claude del ordenador. Añade `higgsfield` a `claude_desktop_config.json`, guarda una copia de seguridad y no toca el resto de servidores. Después, cierra Claude del todo (Cmd+Q) y ábrelo. Claude (chat, Cowork o Code) podrá generar directamente en ese ordenador, con la clave siempre en local. Necesita Python 3.10 o superior y el extra `mcp`.
+
+| Herramienta | Qué hace | Coste |
+|---|---|---|
+| `hf_models`, `hf_model_info` | catálogo, parámetros y precio publicado | gratis |
+| `hf_generate` | valida por defecto (`dry_run=true`); con `dry_run=false` lanza y devuelve un `request_id` | de pago |
+| `hf_wait` | espera 35-45 s como máximo; si `done=false`, se vuelve a llamar. Al terminar descarga, copia a Cloudinary, anota en el historial y devuelve miniaturas | gratis |
+| `hf_spend` | lanzadas, cobradas y USD estimado por modelo en los últimos N días | gratis |
+| `hf_history`, `hf_cancel`, `hf_doctor` | historial, cancelar en cola, comprobar configuración | gratis |
+
+**Protecciones de gasto** (las aplica el servidor, no dependen del modelo):
+
+- Antes de subir o enviar nada, cada generación queda reservada en `output/mcp_ledger.jsonl`.
+- Una petición idéntica en los últimos 15 minutos se rechaza, esté enviándose, aceptada o en estado incierto. Así un reintento por timeout no cobra dos veces.
+- Si ese registro no se puede escribir, no se envía nada.
+- Cada validación y cada envío llevan el coste estimado cuando el precio público lo permite. Si no se puede calcular, se dice.
+- Tope opcional de generaciones vía MCP en 24 h móviles: `HFCLI_MCP_MAX_JOBS_PER_DAY` en `.env.local`. Sin esa variable no hay tope.
+
+Los logs del servidor están en `~/Library/Logs/Claude/mcp-server-higgsfield.log` (macOS).
 
 ## Catálogo
 

@@ -68,7 +68,7 @@ def fake_api(monkeypatch, statuses, final=None, seen=None, request_id=RID):
             seen.append((endpoint, params))
         return {"request_id": request_id, "status": "queued", "status_url": STATUS_URL}
 
-    def get_json(url):
+    def get_json(url, timeout=None):
         return seq.pop(0) if len(seq) > 1 else seq[0]
 
     monkeypatch.setattr(api, "submit", submit)
@@ -203,7 +203,7 @@ def test_gen_timeout_keeps_request_id(home, monkeypatch, capsys):
 
 def test_errors_after_submit_never_escape(home, monkeypatch, capsys):
     fake_api(monkeypatch, ["queued"])
-    monkeypatch.setattr(api, "get_json", lambda url: (_ for _ in ()).throw(httpx.ConnectError("down")))
+    monkeypatch.setattr(api, "get_json", lambda url, timeout=None: (_ for _ in ()).throw(httpx.ConnectError("down")))
     code, out, _ = run_cli(capsys, "gen", "z-image", "apple", "--json")
     res = json.loads(out)
     assert code == EXIT_FAILED and res["status"] == "lost" and res["request_id"] == RID
@@ -366,7 +366,7 @@ def test_batch_validates_all_first_then_runs(home, media_server, tmp_path, monke
             n = len(seen)
         return {"request_id": f"{n:08d}-aaaa-bbbb", "status_url": f"https://platform.higgsfield.ai/requests/{endpoint}"}
 
-    def get_json(url):
+    def get_json(url, timeout=None):
         if "seedance" in url:
             return {"status": "completed", "video": {"url": f"{media_server}/clip.mp4"}}
         return {"status": "completed", "images": [{"url": f"{media_server}/img1.png"}]}
@@ -396,7 +396,7 @@ def test_batch_crash_in_one_job_keeps_other_results(home, media_server, tmp_path
             raise RuntimeError("unexpected")
         return {"request_id": RID, "status_url": STATUS_URL}
     monkeypatch.setattr(api, "submit", submit)
-    monkeypatch.setattr(api, "get_json", lambda url: {"status": "completed", "images": [{"url": f"{media_server}/img1.png"}]})
+    monkeypatch.setattr(api, "get_json", lambda url, timeout=None: {"status": "completed", "images": [{"url": f"{media_server}/img1.png"}]})
     code, out, err = run_cli(capsys, "batch", str(jobs_file), "--concurrency", "1")
     assert code == EXIT_FAILED and "OK z-image" in out and "RuntimeError" in out and "1 OK, 1 no completados" in err
 
@@ -406,7 +406,7 @@ def test_batch_ctrl_c_stops_sending_new_jobs(home, tmp_path, monkeypatch, capsys
     submitted = []
     monkeypatch.setattr(api, "submit", lambda e, p: submitted.append(p) or {"request_id": f"{len(submitted):08d}-x",
                                                                            "status_url": STATUS_URL})
-    monkeypatch.setattr(api, "get_json", lambda url: {"status": "in_progress"})
+    monkeypatch.setattr(api, "get_json", lambda url, timeout=None: {"status": "in_progress"})
     monkeypatch.setattr(api.time, "sleep", lambda s: REAL_SLEEP(0.01))
     timer = threading.Timer(0.2, lambda: os.kill(os.getpid(), signal.SIGINT))
     timer.start()
@@ -433,7 +433,7 @@ def test_result_recovers_with_history_label(home, media_server, monkeypatch, cap
                            {"event": "submitted", "request_id": "abcd1234-zz", "label": "kling-3",
                             "endpoint": "kling-video/v3.0/std/text-to-video"})
     urls = []
-    monkeypatch.setattr(api, "get_json", lambda url: urls.append(url) or {"status": "completed", "video": {"url": f"{media_server}/clip.mp4"}})
+    monkeypatch.setattr(api, "get_json", lambda url, timeout=None: urls.append(url) or {"status": "completed", "video": {"url": f"{media_server}/clip.mp4"}})
     code, out, _ = run_cli(capsys, "result", "abcd1234-zz")
     assert code == EXIT_OK and "kling-3_abcd1234-zz.mp4" in out
     assert urls[0] == "https://api.higgsfield.ai/requests/abcd1234-zz/status"
@@ -452,3 +452,46 @@ def test_init_creates_private_config_once(home, capsys):
     env_file.write_text("HF_KEY=mine:value\n")
     code, out, _ = run_cli(capsys, "init")
     assert "no se modifica" in out and env_file.read_text() == "HF_KEY=mine:value\n"
+
+
+# ---------- cost estimates & spend report ----------
+
+def test_estimates():
+    from hfcli import costs
+    t = resolve("seedance-2.5-i2v")
+    assert costs.estimate(t, {"duration": 4, "resolution": "480p", "image_url": "https://x"})[0] == 0.8224
+    assert costs.estimate(resolve("wan-3"), {"duration": 10, "resolution": "1080p"})[0] == 2.0
+    usd, note = costs.estimate(resolve("minimax-h3-ref"), {"duration": 6, "image_urls": ["https://x"] * 7})
+    assert usd == round(0.13 * 6 + 0.08 * 2, 4) and "2 referencias extra" in note
+    assert costs.estimate(resolve("seedance-2.5-ref"), {"duration": 5, "video_urls": ["https://v"]})[0] is None
+    assert costs.estimate(resolve("z-image"), {"prompt": "a"})[0] is None
+    assert costs.estimate(resolve("kling-3"), {"prompt": "a"})[1] == "precio no publicado para este modelo"
+
+
+def test_spend_report_classifies(tmp_path):
+    from datetime import datetime, timedelta
+    from hfcli import costs
+    now = datetime.now().astimezone()
+    old = (now - timedelta(days=40)).isoformat()
+    recent = (now - timedelta(hours=2)).isoformat()
+    hist = [
+        {"ts": recent, "event": "final", "request_id": "a", "label": "seedance-2.5", "status": "completed", "est_usd": 0.82},
+        {"ts": recent, "event": "final", "request_id": "b", "label": "seedance-2.5", "status": "failed", "est_usd": 0.82},
+        {"ts": recent, "event": "final", "request_id": "c", "label": "z-image", "status": "completed", "est_usd": None},
+        {"ts": recent, "event": "final", "request_id": "d", "label": "z-image", "status": "nsfw"},
+        {"ts": recent, "event": "submitted", "request_id": "e", "label": "kling-3", "status": "queued"},
+        {"ts": recent, "event": "submit_uncertain", "label": "kling-3", "status": "uncertain"},
+        {"ts": old, "event": "final", "request_id": "f", "label": "seedance-2.5", "status": "completed", "est_usd": 5.0},
+    ]
+    r = costs.spend_report(hist, 30, now)
+    assert r["total"] == {"lanzadas": 6, "completadas": 2, "no_cobradas": 2, "pendientes_o_inciertas": 2,
+                          "completadas_sin_precio": 1, "usd_estimado": 0.82}
+    assert r["por_modelo"]["seedance-2.5"]["usd_estimado"] == 0.82
+
+
+def test_gen_records_estimate_and_spend_cli(home, media_server, monkeypatch, capsys):
+    fake_api(monkeypatch, ["completed"], {"video": {"url": f"{media_server}/clip.mp4"}})
+    code, _, err = run_cli(capsys, "gen", "seedance-2.5", "sunset", "--duration", "4", "--res", "480p")
+    assert code == EXIT_OK and "Coste estimado: ~$0.82" in err
+    code, out, _ = run_cli(capsys, "spend", "--days", "1")
+    assert code == EXIT_OK and "seedance-2.5" in out and "0.82" in out and "open.higgsfield.ai/usage" in out

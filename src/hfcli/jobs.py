@@ -15,7 +15,7 @@ from pathlib import Path
 import httpx
 import higgsfield_client
 
-from hfcli import EXIT_FAILED, EXIT_OK, EXIT_STORAGE, api, storage
+from hfcli import EXIT_FAILED, EXIT_OK, EXIT_STORAGE, api, costs, storage
 from hfcli.catalog import Target
 from hfcli.config import Settings, redact
 from hfcli.params import file_refs, replace_refs
@@ -82,41 +82,11 @@ def _http_code(exc: BaseException) -> int | None:
 
 def run(target: Target, params: dict, settings: Settings, opts: Options, prefix: str = "",
         upload_cache: dict[Path, str] | None = None, stop: threading.Event | None = None) -> JobResult:
+    """Submit and wait until done (CLI). Nothing after the submit may escape without a request_id."""
     start = time.monotonic()
-    res = JobResult(ok=False, status="error", label=target.label, endpoint=target.endpoint, params=params)
-    if stop is not None and stop.is_set():
-        res.status = "skipped"
-        return _fail(res, "no enviado: el batch se interrumpió antes", start, settings)
-    try:
-        res.params = params = upload_refs(params, opts, upload_cache)
-    except (higgsfield_client.HiggsfieldClientError, httpx.HTTPError, OSError) as exc:
-        return _fail(res, f"fallo subiendo archivos, no se ha enviado nada: {type(exc).__name__}: {exc}", start, settings)
-
-    try:
-        data = api.submit(target.endpoint, params)
-    except higgsfield_client.HiggsfieldClientError as exc:
-        code = _http_code(exc)
-        if code is not None and code < 500 and code != 408:
-            hint = " Baja --concurrency o espera." if code == 429 else ""
-            return _fail(res, f"la API rechazó la petición (HTTP {code}): {exc}.{hint}", start, settings)
-        return _uncertain(res, f"HTTP {code}", start, settings)
-    except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
-        return _fail(res, f"sin conexión con la API, no se ha enviado nada ({type(exc).__name__})", start, settings)
-    except (httpx.HTTPError, ValueError, KeyError) as exc:
-        return _uncertain(res, type(exc).__name__, start, settings)
-    except KeyboardInterrupt:
-        _uncertain(res, "Ctrl+C durante el envío", start, settings)
-        res.status = "interrupted"
-        raise JobInterrupted(res) from None
-
-    res.request_id = str(data["request_id"])
-    status_url = data.get("status_url") or ""
-    if not api.is_higgsfield_url(status_url):
-        status_url = api.status_url_for(res.request_id)
-    log(f"{prefix}Enviado {target.label} request_id={res.request_id}", opts)
-    storage.append_history(settings.history_file, {"event": "submitted", "request_id": res.request_id,
-                                                   "label": target.label, "endpoint": target.endpoint,
-                                                   "params": params, "status": "queued"})
+    res, status_url = submit(target, params, settings, opts, prefix, upload_cache, stop)
+    if status_url is None:
+        return res
     try:
         return finish(res, status_url, settings, opts, start, prefix, stop)
     except JobInterrupted:
@@ -125,6 +95,54 @@ def run(target: Target, params: dict, settings: Settings, opts: Options, prefix:
         res.status = "error"
         return _fail(res, f"error inesperado tras enviar ({type(exc).__name__}: {exc}). "
                           f"Recupera con `hf result {res.request_id}`", start, settings)
+
+
+def submit(target: Target, params: dict, settings: Settings, opts: Options, prefix: str = "",
+           upload_cache: dict[Path, str] | None = None, stop: threading.Event | None = None,
+           history_extra: dict | None = None) -> tuple[JobResult, str | None]:
+    """Upload local refs and send the request. Returns (result, status_url); status_url is None
+    when nothing is left to wait for (rejected, uncertain or skipped)."""
+    start = time.monotonic()
+    res = JobResult(ok=False, status="error", label=target.label, endpoint=target.endpoint, params=params)
+    if stop is not None and stop.is_set():
+        res.status = "skipped"
+        return _fail(res, "no enviado: el batch se interrumpió antes", start, settings), None
+    est_usd, _ = costs.estimate(target, params)
+    history_extra = {**(history_extra or {}), "est_usd": est_usd}
+    try:
+        res.params = params = upload_refs(params, opts, upload_cache)
+    except (higgsfield_client.HiggsfieldClientError, httpx.HTTPError, OSError) as exc:
+        return _fail(res, f"fallo subiendo archivos, no se ha enviado nada: {type(exc).__name__}: {exc}",
+                     start, settings), None
+
+    try:
+        data = api.submit(target.endpoint, params)
+    except higgsfield_client.HiggsfieldClientError as exc:
+        code = _http_code(exc)
+        if code is not None and code < 500 and code != 408:
+            hint = " Baja --concurrency o espera." if code == 429 else ""
+            return _fail(res, f"la API rechazó la petición (HTTP {code}): {exc}.{hint}", start, settings), None
+        return _uncertain(res, f"HTTP {code}", start, settings, history_extra), None
+    except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+        return _fail(res, f"sin conexión con la API, no se ha enviado nada ({type(exc).__name__})",
+                     start, settings), None
+    except (httpx.HTTPError, ValueError, KeyError) as exc:
+        return _uncertain(res, type(exc).__name__, start, settings, history_extra), None
+    except KeyboardInterrupt:
+        _uncertain(res, "Ctrl+C durante el envío", start, settings, history_extra)
+        res.status = "interrupted"
+        raise JobInterrupted(res) from None
+
+    res.request_id = str(data["request_id"])
+    status_url = data.get("status_url") or ""
+    if not api.is_higgsfield_url(status_url):
+        status_url = api.status_url_for(res.request_id)
+    res.status = "queued"
+    log(f"{prefix}Enviado {target.label} request_id={res.request_id}", opts)
+    storage.append_history(settings.history_file, {"event": "submitted", "request_id": res.request_id,
+                                                   "label": target.label, "endpoint": target.endpoint,
+                                                   "params": params, "status": "queued", **(history_extra or {})})
+    return res, status_url
 
 
 def finish(res: JobResult, status_url: str, settings: Settings, opts: Options, start: float,
@@ -148,6 +166,11 @@ def finish(res: JobResult, status_url: str, settings: Settings, opts: Options, s
               start, settings)
         raise JobInterrupted(res) from None
 
+    return complete(res, result, settings, opts, start)
+
+
+def complete(res: JobResult, result: dict, settings: Settings, opts: Options, start: float) -> JobResult:
+    """Turn a terminal status JSON into a JobResult: outputs, downloads, Cloudinary, history."""
     res.status = result.get("status", "unknown")
     if res.status != "completed":
         detail = {"failed": f"la generación falló: {result.get('error') or 'sin detalle'}",
@@ -200,11 +223,11 @@ def _fail(res: JobResult, message: str, start: float, settings: Settings) -> Job
     return res
 
 
-def _uncertain(res: JobResult, why: str, start: float, settings: Settings) -> JobResult:
+def _uncertain(res: JobResult, why: str, start: float, settings: Settings, extra: dict | None = None) -> JobResult:
     """The POST may or may not have been accepted: warn loudly and keep a trace of what was sent."""
     res.status = "uncertain"
     storage.append_history(settings.history_file, {"event": "submit_uncertain", "label": res.label,
                                                    "endpoint": res.endpoint, "params": res.params, "reason": why,
-                                                   "status": "uncertain"})
+                                                   "status": "uncertain", **(extra or {})})
     return _fail(res, f"no se sabe si la petición llegó a Higgsfield ({why}). Revisa open.higgsfield.ai/usage "
                       f"antes de repetirla para no pagar dos veces", start, settings)

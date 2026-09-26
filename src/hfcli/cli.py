@@ -18,7 +18,7 @@ from pathlib import Path
 import httpx
 import higgsfield_client
 
-from hfcli import EXIT_FAILED, EXIT_OK, EXIT_STORAGE, EXIT_USAGE, __version__, api, jobs, storage
+from hfcli import EXIT_FAILED, EXIT_OK, EXIT_STORAGE, EXIT_USAGE, __version__, api, costs, jobs, storage
 from hfcli.catalog import Target, describe_param, has_public_price, load, resolve, validate
 from hfcli.config import Settings, UsageError, credential_state, load_settings, redact
 from hfcli.params import build_params, check_values, file_refs, split_inputs, with_placeholders
@@ -125,15 +125,16 @@ def cmd_gen(args, settings: Settings) -> int:
                  "image": args.image, "video": args.video, "audio": args.audio}
     params = build_params(target, prompt, pairs, shortcuts)
     _check(target, params, args.no_validate)
+    est_usd, est_note = costs.estimate(target, params)
     if args.dry_run:
-        print(json.dumps({"endpoint": target.endpoint, "label": target.label, "params": params},
-                         ensure_ascii=False, indent=2))
+        print(json.dumps({"endpoint": target.endpoint, "label": target.label, "params": params,
+                          "coste_estimado_usd": est_usd, "coste_nota": est_note}, ensure_ascii=False, indent=2))
         print("Dry-run: validado, no se ha enviado nada.", file=sys.stderr)
         return EXIT_OK
     if args.name:
         target.label = re.sub(r"[^A-Za-z0-9._-]+", "-", args.name)
-    if has_public_price(target) and not args.json:
-        print(f"Coste orientativo: {target.pricing.split('. ')[0]}.", file=sys.stderr)
+    if not args.json:
+        print(f"Coste estimado: {costs.describe(est_usd, est_note)}", file=sys.stderr)
     return _run_single(target, params, settings, _options(args), args.json)
 
 
@@ -336,6 +337,21 @@ def cmd_history(args, settings: Settings) -> int:
     return EXIT_OK
 
 
+def cmd_spend(args, settings: Settings) -> int:
+    report = costs.spend_report(storage.read_history(settings.history_file), args.days)
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return EXIT_OK
+    print(f"Gasto de los últimos {args.days:g} días (desde {report['desde']})\n")
+    print(f"{'modelo':<22} {'lanzadas':>8} {'hechas':>7} {'no cobradas':>12} {'pend/incierto':>14} {'USD est.':>9} {'sin precio':>11}")
+    rows = sorted(report["por_modelo"].items(), key=lambda kv: -kv[1]["usd_estimado"])
+    for name, r in rows + [("TOTAL", report["total"])]:
+        print(f"{name:<22} {r['lanzadas']:>8} {r['completadas']:>7} {r['no_cobradas']:>12} "
+              f"{r['pendientes_o_inciertas']:>14} {r['usd_estimado']:>9.2f} {r['completadas_sin_precio']:>11}")
+    print(f"\n{report['nota']}")
+    return EXIT_OK
+
+
 def cmd_presets(args, settings: Settings) -> int:
     resp = api.raw_get("/marketing-studio/image/presets", {"size": args.size})
     if resp.status_code != 200:
@@ -390,13 +406,94 @@ def cmd_init(args, settings: Settings) -> int:
     return EXIT_OK
 
 
-def cmd_doctor(args, settings: Settings) -> int:
+def claude_config_path() -> Path:
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    if sys.platform.startswith("win"):
+        return Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / "Claude" / "claude_desktop_config.json"
+    return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
+
+
+def mcp_entry() -> dict:
+    # Absolute interpreter of this install: works from the desktop app without any PATH setup.
+    return {"command": sys.executable, "args": ["-m", "hfcli", "mcp"]}
+
+
+def mcp_available() -> bool:
+    import importlib.util
+    return sys.version_info >= (3, 10) and importlib.util.find_spec("mcp") is not None
+
+
+def install_mcp(config_path: Path) -> str:
+    """Add (or update) the 'higgsfield' server in Claude's config without touching anything else.
+    Keeps the file's permissions, follows symlinks, and never overwrites an earlier backup."""
+    if not mcp_available():
+        raise UsageError("Falta el soporte MCP en esta instalación (Python 3.10+ y pip install -e '.[mcp]'). "
+                         "No toco la configuración de Claude.")
+    config_path = config_path.expanduser()
+    target = config_path.resolve() if config_path.is_symlink() else config_path
+    data: dict = {}
+    mode = None
+    if target.exists():
+        original = target.read_bytes()
+        try:
+            data = json.loads(original.decode("utf-8") or "{}")
+        except ValueError as exc:
+            raise UsageError(f"{target} no es JSON válido ({exc}); no lo toco. Arréglalo y repite.") from None
+        if not isinstance(data, dict):
+            raise UsageError(f"{target} no tiene el formato esperado; no lo toco.")
+        mode = target.stat().st_mode & 0o777
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        for n in range(1000):  # never overwrite an existing backup
+            backup = target.with_name(f"{target.name}.bak-{stamp}" + (f"-{n}" if n else ""))
+            try:
+                with backup.open("xb") as fh:
+                    fh.write(original)
+                break
+            except FileExistsError:
+                continue
+        os.chmod(backup, mode)
+    servers = data.setdefault("mcpServers", {})
+    if not isinstance(servers, dict):
+        raise UsageError(f"'mcpServers' en {target} no es un objeto; no lo toco.")
+    previous = servers.get("higgsfield")
+    servers["higgsfield"] = mcp_entry()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(f"{target.name}.tmp-{os.getpid()}")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", "utf-8")
+    if mode is not None:
+        os.chmod(tmp, mode)
+    tmp.replace(target)
+    return "actualizado" if previous else "añadido"
+
+
+def cmd_mcp(args, settings: Settings) -> int:
+    if args.action == "print":
+        print(json.dumps({"mcpServers": {"higgsfield": mcp_entry()}}, indent=2))
+        return EXIT_OK
+    if args.action == "install":
+        path = Path(args.config).expanduser() if args.config else claude_config_path()
+        what = install_mcp(path)
+        print(f"Servidor 'higgsfield' {what} en {path} (copia de seguridad junto al archivo).")
+        print("Cierra la app de Claude del todo (Cmd+Q) y vuelve a abrirla para cargarlo.")
+        return EXIT_OK
+    try:
+        from hfcli.mcp_server import serve
+    except ImportError as exc:
+        raise UsageError(f"Falta el soporte MCP ({exc.name}). Instala: pip install -e '.[mcp]' (Python 3.10+).") from None
+    serve()
+    return EXIT_OK
+
+
+def doctor_report(settings: Settings) -> tuple[list[str], int]:
+    """Checks that cost nothing. Returns (lines, number of FAIL lines); never includes secrets."""
+    lines: list[str] = []
     fails = 0
 
     def line(state: str, text: str) -> None:
         nonlocal fails
         fails += state == "FAIL"
-        print(f"[{state:<4}] {text}")
+        lines.append(f"[{state:<4}] {text}")
 
     try:
         sdk = version("higgsfield-client")
@@ -436,11 +533,17 @@ def cmd_doctor(args, settings: Settings) -> int:
         except ImportError:
             line("FAIL", "Cloudinary: CLOUDINARY_URL definida pero falta el paquete: pip install -e '.[cloudinary]'")
         except Exception as exc:
-            line("FAIL", f"Cloudinary: {type(exc).__name__}: {exc}")
+            line("FAIL", redact(f"Cloudinary: {type(exc).__name__}: {exc}"))
     else:
         line("INFO", "Cloudinary: desactivado (sin CLOUDINARY_URL)")
     meta = load()["_meta"]
     line("OK", f"Catálogo: {meta['endpoints']} endpoints (esquemas del {meta['retrieved']})")
+    return lines, fails
+
+
+def cmd_doctor(args, settings: Settings) -> int:
+    lines, fails = doctor_report(settings)
+    print("\n".join(lines))
     return EXIT_USAGE if fails else EXIT_OK
 
 
@@ -506,10 +609,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_history)
 
+    p = sub.add_parser("spend", help="cuánto se ha lanzado y gastado (estimado) por modelo")
+    p.add_argument("--days", type=_bounded(0.01, 3650), default=30, help="ventana en días (def. 30)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_spend)
+
     p = sub.add_parser("presets", help="presets de Marketing Studio (para preset_id)")
     p.add_argument("--size", type=int, default=50)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_presets)
+
+    p = sub.add_parser("mcp", help="servidor MCP para que Claude use hf en este ordenador")
+    p.add_argument("action", nargs="?", choices=["serve", "install", "print"], default="serve",
+                   help="serve (por defecto, lo lanza la app de Claude), install (lo registra en Claude), print")
+    p.add_argument("--config", help="ruta alternativa de claude_desktop_config.json (install)")
+    p.set_defaults(func=cmd_mcp)
 
     p = sub.add_parser("init", help="preparar este ordenador: crea el archivo de configuración")
     p.add_argument("--open", action="store_true", help="abrirlo en el editor al terminar")
@@ -546,4 +660,4 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_FAILED
     except BrokenPipeError:  # output piped into `head` and closed early
         sys.stdout = open(os.devnull, "w")
-        return EXIT_OK if args.command in {"models", "history", "presets", "doctor", "status"} else EXIT_FAILED
+        return EXIT_OK if args.command in {"models", "history", "presets", "doctor", "status", "spend"} else EXIT_FAILED

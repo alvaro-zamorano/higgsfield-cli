@@ -1,6 +1,6 @@
 ---
 name: higgsfield-cli
-description: Generar imágenes y vídeos con la API de Higgsfield mediante el comando `hf` (repo alvaro-zamorano/higgsfield-cli): instalarlo en cualquier ordenador, generaciones, lotes, recuperar request_id, historial, Cloudinary. Usar cuando Álvaro pida generar con la API de Higgsfield o AgentOS necesite medios.
+description: Generar imágenes y vídeos con la API de Higgsfield mediante `hf` (repo alvaro-zamorano/higgsfield-cli) o sus herramientas MCP hf_*: instalarlo en cualquier ordenador, generaciones, lotes, recuperar request_id, historial, Cloudinary. Usar cuando Álvaro pida generar con la API de Higgsfield o AgentOS necesite medios.
 ---
 
 # hf — API de Higgsfield desde la terminal
@@ -20,9 +20,10 @@ Compruébalo con `test -x ~/.higgsfield-cli/venv/bin/hf && ~/.higgsfield-cli/ven
 ```bash
 python3 -m venv ~/.higgsfield-cli/venv
 ~/.higgsfield-cli/venv/bin/pip install -q -U pip
-~/.higgsfield-cli/venv/bin/pip install -q "higgsfield-cli[cloudinary] @ git+https://github.com/alvaro-zamorano/higgsfield-cli.git"
+~/.higgsfield-cli/venv/bin/pip install -q "higgsfield-cli[cloudinary,mcp] @ git+https://github.com/alvaro-zamorano/higgsfield-cli.git"
 ~/.higgsfield-cli/venv/bin/hf init --open
 ~/.higgsfield-cli/venv/bin/hf doctor
+~/.higgsfield-cli/venv/bin/hf mcp install      # y reiniciar la app de Claude
 ```
 
 Para Windows y para actualizar a la última versión, mira el README del repo. El `pip install` necesita que git tenga acceso a la cuenta de GitHub de Álvaro, porque el repo es privado. La clave la escribe Álvaro en `.env.local` en ese ordenador.
@@ -36,7 +37,7 @@ Para Windows y para actualizar a la última versión, mira el README del repo. E
 
 1. **La clave nunca pasa por el chat.** No leas, imprimas, copies ni subas `.env.local`, y no pidas la clave en el chat. Si falta, Álvaro la pone en local. Para comprobar la configuración usa `hf doctor`: no gasta nada y no muestra la clave.
 2. **Valida antes de gastar.** Si dudas de los parámetros, mira `hf models <alias>`. Lanza siempre primero `--dry-run` (gratis) y después la generación real.
-3. **Cada generación cuesta dinero.** Confirma con Álvaro antes de lanzar algo que no haya pedido explícitamente, lotes de más de 5 trabajos, vídeo a 1080p o 4K, o duraciones largas. `hf models <alias>` muestra el precio publicado cuando existe.
+3. **Cada generación cuesta dinero.** Confirma con Álvaro antes de lanzar algo que no haya pedido explícitamente, lotes de más de 5 trabajos, vídeo a 1080p o 4K, o duraciones largas. Dile siempre el coste estimado que da el dry run; si es desconocido, dilo. Para saber cuánto se lleva gastado: `hf spend` (o `hf_spend`); el importe real está en open.higgsfield.ai/usage.
 4. **Usa `--json` y cree solo al resultado.** Hay éxito solo si `ok: true` y `outputs` trae `url` y `file`. No digas que funcionó sin haber visto esa salida.
 5. **`status: "uncertain"`: no repitas.** Puede que la petición llegara. Pide a Álvaro que lo revise en open.higgsfield.ai/usage.
 6. **`timeout`, `lost` o `interrupted`: recupera, no relances.** Usa `hf result <request_id>` y nunca `hf gen` de nuevo, que cobraría dos veces.
@@ -64,16 +65,29 @@ $HF gen product-shots "cream tube on green tiles" image_urls=@product.jpg --json
 $HF batch trabajos.jsonl --dry-run && $HF batch trabajos.jsonl --concurrency 2 --json
 $HF result <request_id> --json               # recuperar tras timeout, corte o Ctrl+C
 $HF history -n 10
+$HF spend --days 7                           # gasto estimado por modelo
 ```
 
 **Batch.** Una línea por trabajo: `{"model": "<alias>", "prompt": "...", "params": {...}, "name": "etiqueta"}`. Los archivos locales se indican como `"@/ruta"` dentro de `params`. Antes de lanzar nada se validan todos los trabajos y se suben los archivos.
 
 **Pegar comandos en zsh.** Si Álvaro pega bloques con comentarios `#` en zsh sin `setopt interactivecomments`, falla con `parse error`. Pásale los comandos sin comentarios.
 
-## Desde una sesión de Claude (Cowork)
+## Desde Claude: herramientas hf_* (MCP)
+
+Si tienes las herramientas `hf_models`, `hf_model_info`, `hf_generate`, `hf_wait`, `hf_history`, `hf_cancel` y `hf_doctor` (en Cowork aparecen con prefijo, por ejemplo `mcp__remote-devices__higgsfield__hf_generate`), úsalas en vez de pasar comandos. Así es el flujo:
+
+1. Si dudas de los parámetros, `hf_model_info`.
+2. `hf_generate` con `dry_run=true`.
+3. Enseña a Álvaro modelo, parámetros y coste, y espera su OK.
+4. `hf_generate` con `dry_run=false`.
+5. `hf_wait` con el `request_id` hasta `done=true`.
+
+El servidor rechaza peticiones idénticas en 15 minutos y puede tener un tope diario opcional. Si responde `refused`, no lo esquives con `allow_duplicate` salvo que Álvaro pida expresamente otra generación igual. Archivos locales: `"@/ruta/absoluta"` en los campos de URL de `params`.
+
+Si no están esas herramientas, en ese ordenador falta `hf mcp install` y reiniciar Claude. Mientras tanto:
 
 - La shell remota del Mac es una VM Linux y no puede usar el venv de macOS.
-- Si hace falta ejecutar `hf` y no hay forma de hacerlo en el ordenador de Álvaro, no improvises otro cliente ni copies la clave a la nube. Pásale el comando exacto.
+- No improvises otro cliente ni copies la clave a la nube. Pasa a Álvaro el comando exacto.
 - Después, verifica leyendo `~/.higgsfield-cli/output/history.jsonl`, que no contiene credenciales. Busca el `request_id` y comprueba `status`, `outputs[].file` y `cloudinary_url`.
 
 ## Mantenimiento

@@ -28,11 +28,17 @@ _sdk_client: higgsfield_client.SyncClient | None = None
 
 
 class PollTimeout(Exception):
-    pass
+    def __init__(self, message: str, last: str | None = None):
+        super().__init__(message)
+        self.last = last  # last status seen (e.g. "in_progress")
 
 
 class LostTrack(Exception):
-    """Too many consecutive errors while polling; the request may still finish server-side."""
+    """Polling failed: too many transient errors, or a permanent HTTP error (then `code` is set)."""
+
+    def __init__(self, message: str, code: int | None = None):
+        super().__init__(message)
+        self.code = code
 
 
 class Interrupted(Exception):
@@ -82,8 +88,12 @@ def submit(endpoint: str, params: dict) -> dict:
     return data
 
 
-def get_json(url: str) -> dict:
-    data = HttpTransport(http(), create_default_retry_strategy()).request("GET", url).json()
+def get_json(url: str, timeout: float | None = None) -> dict:
+    """GET a status. With an explicit timeout the call is bounded: no transport retries either
+    (the caller's polling loop retries within its own deadline)."""
+    strategy = NoRetry() if timeout else create_default_retry_strategy()
+    kwargs = {"timeout": timeout} if timeout else {}
+    data = HttpTransport(http(), strategy).request("GET", url, **kwargs).json()
     if not isinstance(data, dict):
         raise ValueError("respuesta de estado no es un objeto JSON")
     return data
@@ -94,22 +104,39 @@ def status_of(request_id: str) -> str:
 
 
 def wait(status_url: str, *, timeout_s: float, delay_s: float, on_status: Callable[[str], None] | None = None,
-         stop: threading.Event | None = None, max_errors: int = 10) -> dict:
+         stop: threading.Event | None = None, max_errors: int = 10, request_timeout: float | None = None) -> dict:
     """Poll until a terminal status and return that final JSON (it already contains the outputs).
-    Unknown statuses are treated as still running, so a paid job is never abandoned early."""
+    Unknown statuses are treated as still running, so a paid job is never abandoned early.
+    timeout_s is a hard budget: it is also enforced while errors are being retried."""
     start, errors, last = time.monotonic(), 0, None
+
+    def remaining() -> float:
+        return timeout_s - (time.monotonic() - start)
+
+    def pause() -> None:
+        time.sleep(max(0.0, min(delay_s, remaining())))
+
     while True:
         if stop is not None and stop.is_set():
             raise Interrupted(f"interrumpido (último estado: {last or 'desconocido'})")
         try:
-            data = get_json(status_url)
+            per_request = min(request_timeout, max(1.0, remaining())) if request_timeout else None
+            data = get_json(status_url, timeout=per_request)
             name = str(data.get("status", "")).lower()
             errors = 0
         except (httpx.HTTPError, higgsfield_client.HiggsfieldClientError, ValueError) as exc:
+            code = getattr(getattr(exc.__cause__, "response", None), "status_code", None)
             errors += 1
+            # 401/403: the key is wrong, retrying won't help. 400/404/422 may be transient right
+            # after a submit, so they get a few tries before giving up.
+            if code in (401, 403) or (code in (400, 404, 422) and errors >= 3):
+                raise LostTrack(f"HTTP {code} consultando el estado: {exc}", code=code) from exc
             if errors >= max_errors:
                 raise LostTrack(f"{errors} errores seguidos consultando el estado ({type(exc).__name__})") from exc
-            time.sleep(delay_s)
+            if remaining() <= 0:
+                raise PollTimeout(f"Sin respuesta válida del estado en {timeout_s:.0f} s ({type(exc).__name__})",
+                                  last=last) from exc
+            pause()
             continue
         if name != last and on_status:
             on_status(name if name in PENDING | TERMINAL else f"{name} (desconocido, sigo esperando)")
@@ -117,9 +144,9 @@ def wait(status_url: str, *, timeout_s: float, delay_s: float, on_status: Callab
         if name in TERMINAL:
             data["status"] = "canceled" if name == "cancelled" else name
             return data
-        if time.monotonic() - start > timeout_s:
-            raise PollTimeout(f"Sin terminar tras {timeout_s / 60:.0f} min (último estado: {name})")
-        time.sleep(delay_s)
+        if remaining() <= 0:
+            raise PollTimeout(f"Sin terminar tras {timeout_s / 60:.0f} min (último estado: {name})", last=name)
+        pause()
 
 
 def cancel(request_id: str) -> None:

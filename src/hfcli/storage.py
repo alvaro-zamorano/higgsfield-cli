@@ -5,6 +5,7 @@ import json
 import mimetypes
 import sys
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -64,7 +65,7 @@ def _extension(url: str, *content_types: str | None) -> str:
 
 def download(url: str, dest_dir: Path, basename: str, content_type: str | None = None) -> Path:
     dest_dir.mkdir(parents=True, exist_ok=True)
-    partial = dest_dir / f"{basename}.part"
+    partial = dest_dir / f"{basename}.{uuid.uuid4().hex[:8]}.part"  # unique: concurrent finishers can't collide
     try:
         with httpx.stream("GET", url, follow_redirects=True, timeout=httpx.Timeout(30.0, read=300.0)) as resp:
             resp.raise_for_status()
