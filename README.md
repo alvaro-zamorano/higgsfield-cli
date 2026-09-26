@@ -57,6 +57,8 @@ hf gen soul-2 "editorial portrait" batch_size=4 --dry-run   # valida y muestra l
 hf batch jobs.jsonl --concurrency 2
 hf history
 hf spend --days 7                 # lanzadas, cobradas y USD estimado por modelo
+hf guide seedance-2.5             # cómo escribir el prompt para ese modelo + lo mejor y peor valorado aquí
+hf rate <request_id> 4 "buena luz, cámara demasiado rápida"   # valorar un resultado (1-5)
 hf result <request_id>            # recuperar una petición (timeout, corte, Ctrl+C)
 hf status <request_id> · hf cancel <request_id> · hf upload archivo.png · hf presets
 ```
@@ -86,6 +88,12 @@ Antes de lanzar nada se validan todos los trabajos y se suben los archivos. Si u
 - **Importe real.** Está en open.higgsfield.ai/usage.
 - **Freno duro.** El saldo de la API es de prepago: solo se gasta lo que recargas.
 
+### Dirección: guías de prompt y valoraciones
+
+- **Guías por modelo.** `hf guide <modelo>` (o `hf_prompt_guide` desde Claude) explica cómo escribir el prompt para ese modelo: estructura, cámara, audio y diálogo, image-to-video, referencias, fallos conocidos, cómo hacer una prueba barata y plantillas. Cada regla indica su fuente: oficial, Higgsfield, comunidad o criterio propio. Hay guía para **Seedance 2.5/2.0** y **Kling 3.0** (incluido Motion Control). El resto de modelos usan la guía general. Las guías están en `src/hfcli/prompt_guides/` y se consultaron el 2026-09-26. Son documentación, no resultados probados.
+- **Aprender de los resultados.** `hf rate <request_id> <1-5> "comentario"` (o `hf_rate`) guarda tu valoración en el historial. `hf guide` muestra primero los prompts mejor y peor valorados de esa familia de modelos en este ordenador, con sus parámetros y tu comentario. `hf history` marca las valoradas con ★.
+- **Revisar vídeos.** Con `ffmpeg` instalado (`brew install ffmpeg`), `hf_wait` devuelve a Claude un mosaico con 4 fotogramas de cada vídeo, cada uno con su segundo marcado, para revisar el resultado antes de iterar. Sin ffmpeg solo hay miniaturas de imágenes. `hf doctor` indica si lo encuentra; si está en una ruta rara, se indica con `HFCLI_FFMPEG`.
+
 ### Códigos de salida
 
 | Código | Significado |
@@ -101,11 +109,23 @@ Antes de lanzar nada se validan todos los trabajos y se suben los archivos. Si u
 
 | Herramienta | Qué hace | Coste |
 |---|---|---|
+| `hf_prompt_guide` | cómo escribir el prompt para ese modelo y qué ha funcionado aquí (se llama antes de escribir) | gratis |
 | `hf_models`, `hf_model_info` | catálogo, parámetros y precio publicado | gratis |
 | `hf_generate` | valida por defecto (`dry_run=true`); con `dry_run=false` lanza y devuelve un `request_id` | de pago |
-| `hf_wait` | espera 35-45 s como máximo; si `done=false`, se vuelve a llamar. Al terminar descarga, copia a Cloudinary, anota en el historial y devuelve miniaturas | gratis |
+| `hf_wait` | espera 35-45 s como máximo; si `done=false`, se vuelve a llamar. Al terminar descarga, copia a Cloudinary, anota en el historial y devuelve miniaturas (imágenes) o 4 fotogramas (vídeos, con ffmpeg) | gratis |
+| `hf_rate` | guarda tu nota (1-5) y comentario sobre un resultado | gratis |
 | `hf_spend` | lanzadas, cobradas y USD estimado por modelo en los últimos N días | gratis |
 | `hf_history`, `hf_cancel`, `hf_doctor` | historial, cancelar en cola, comprobar configuración | gratis |
+
+**Flujo de dirección** (va en las instrucciones del servidor):
+
+1. Guía del modelo.
+2. Preguntas solo sobre lo que falte.
+3. Prompt, parámetros, supuestos y coste.
+4. Prueba barata con tu OK. Cada iteración y la versión final piden un OK nuevo.
+5. Revisión de los fotogramas.
+6. Tu nota con `hf_rate`.
+7. Iterar cambiando una sola cosa cada vez.
 
 **Protecciones de gasto** (las aplica el servidor, no dependen del modelo):
 
@@ -130,6 +150,9 @@ Los logs del servidor están en `~/Library/Logs/Claude/mcp-server-higgsfield.log
 - La API pública no incluye todo Higgsfield: no hay voces, doblaje, upscale, Shorts Studio ni publicación en TikTok. Eso sigue en el conector de Higgsfield de Claude.
 - `hf presets` y la comprobación de clave de `hf doctor` están probadas solo con una clave inválida. Con una válida, confirma la primera vez que salen bien.
 - 37 de los 52 endpoints no publican precio. Revisa el consumo en open.higgsfield.ai/usage.
+- Las guías de prompt salen de documentación pública (oficial cuando existe). Aún no se han contrastado con generaciones propias: eso lo irán diciendo las valoraciones. Hay dudas abiertas, marcadas en cada guía:
+  - qué token de referencia acepta Seedance 2.5 en Higgsfield (`@Image1` u otro);
+  - qué acepta el campo `elements` de Kling 3.0.
 
 ## Desarrollo
 
