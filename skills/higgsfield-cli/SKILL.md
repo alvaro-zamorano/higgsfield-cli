@@ -1,6 +1,6 @@
 ---
 name: higgsfield-cli
-description: Generar imágenes y vídeos con la API de Higgsfield mediante `hf` (repo alvaro-zamorano/higgsfield-cli) o sus herramientas MCP hf_*: instalarlo en cualquier ordenador, escribir el prompt según la guía de cada modelo, generaciones, lotes, recuperar request_id, valoraciones, historial, Cloudinary. Usar cuando Álvaro pida generar con la API de Higgsfield o AgentOS necesite medios.
+description: Generar imágenes y vídeos con la API de Higgsfield mediante `hf` (repo alvaro-zamorano/higgsfield-cli) o sus herramientas MCP hf_* (en el Mac o por el conector remoto desde cualquier chat): instalarlo en cualquier ordenador, escribir el prompt según la guía de cada modelo, generaciones, lotes, recuperar request_id, valoraciones, historial, Cloudinary. Usar cuando Álvaro pida generar con la API de Higgsfield o AgentOS necesite medios.
 ---
 
 # hf — API de Higgsfield desde la terminal
@@ -89,7 +89,7 @@ $HF rate <request_id> 4 "buena luz, cámara demasiado rápida"
 
 ## Desde Claude: herramientas hf_* (MCP)
 
-Si tienes las herramientas `hf_prompt_guide`, `hf_models`, `hf_model_info`, `hf_generate`, `hf_wait`, `hf_rate`, `hf_spend`, `hf_history`, `hf_cancel` y `hf_doctor` (en Cowork aparecen con prefijo, por ejemplo `mcp__remote-devices__higgsfield__hf_generate`), úsalas en vez de pasar comandos. Así es el flujo:
+Si tienes las herramientas `hf_prompt_guide`, `hf_models`, `hf_model_info`, `hf_generate`, `hf_wait`, `hf_rate`, `hf_spend`, `hf_history`, `hf_cancel` y `hf_doctor` (en Cowork aparecen con prefijo, por ejemplo `mcp__remote-devices__higgsfield__hf_generate`; con el conector remoto, con el prefijo de ese conector), úsalas en vez de pasar comandos. Así es el flujo:
 
 1. `hf_prompt_guide(model)` antes de escribir el prompt.
 2. Si dudas de los parámetros, `hf_model_info`.
@@ -101,7 +101,18 @@ Si tienes las herramientas `hf_prompt_guide`, `hf_models`, `hf_model_info`, `hf_
 
 El servidor rechaza peticiones idénticas en 15 minutos y puede tener un tope diario opcional. Si responde `refused`, no lo esquives con `allow_duplicate` salvo que Álvaro pida expresamente otra generación igual. Archivos locales: `"@/ruta/absoluta"` en los campos de URL de `params`.
 
-Si no están esas herramientas, en ese ordenador falta `hf mcp install` y reiniciar Claude. Mientras tanto:
+## Desde un chat sin el Mac (móvil, web)
+
+Si Álvaro ha conectado el conector remoto (`hf remote`, en claude.ai aparece como `hf remoto`), las herramientas `hf_*` están también en chats que no tienen acceso a su ordenador. Se usan igual, con el mismo flujo y un OK por generación. Hay dos diferencias:
+
+- Los `@archivo` solo pueden ser resultados anteriores (rutas `outputs[].file` de `hf_history`) y solo en campos de URL. Una imagen del chat no llega a su Mac: pídele una URL https o usa un resultado anterior. Solo modelos del catálogo.
+- Los archivos se guardan en su Mac. Para enseñarlos, usa las miniaturas de `hf_wait` y la URL (o la de Cloudinary).
+
+Si en un chat no aparecen las herramientas `hf_*`, no instales `hf` en la nube ni pidas la clave. Dile que puede usar Cowork vinculado a su Mac o activar el conector remoto (README del repo, sección "Usar hf desde cualquier chat"). Si responde `refused: daily_limit`, no hay más generaciones hasta que pasen 24 h o él suba `HFCLI_MCP_MAX_JOBS_PER_DAY` en su Mac.
+
+## Si faltan las herramientas en el Mac
+
+Si estás en el Mac y no están las herramientas, en ese ordenador falta `hf mcp install` y reiniciar Claude. Mientras tanto:
 
 - La shell remota del Mac es una VM Linux y no puede usar el venv de macOS.
 - No improvises otro cliente ni copies la clave a la nube. Pasa a Álvaro el comando exacto.
