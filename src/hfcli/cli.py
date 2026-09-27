@@ -504,6 +504,66 @@ def cmd_mcp(args, settings: Settings) -> int:
     return EXIT_OK
 
 
+def remote_status(settings: Settings) -> tuple[list[str], int]:
+    """Remote connector checks. Never prints the passphrase, tokens or keys."""
+    from hfcli import remote
+    lines: list[str] = []
+    config, problems = remote.check_config(settings)
+    lines += [f"FAIL {p}" for p in problems]
+    if config:
+        lines.append(f"OK   Conector para claude.ai: {config.mcp_url}")
+        lines.append(f"OK   Tope diario: {config.cap} generaciones en 24 h (cuenta todo lo lanzado por MCP, desde cualquier chat)")
+    loaded = remote.service_loaded()
+    if loaded is not None:
+        lines.append(("OK   " if loaded else "INFO ") + "Servicio de arranque automático: " +
+                     ("cargado" if loaded else "no instalado (`hf remote install`)"))
+    port = config.port if config else remote.DEFAULT_PORT
+    local = remote.probe(f"http://127.0.0.1:{port}")
+    lines.append(("OK   " if local == "ok" else "FAIL ") + f"Servidor local 127.0.0.1:{port}: {local}")
+    if config:
+        public = remote.probe(config.base_url, timeout=10)
+        lines.append(("OK   " if public == "ok" else "FAIL ") + f"Túnel {config.base_url}: {public}"
+                     + ("" if public == "ok" else " (¿`tailscale funnel --bg " + str(port) + "`?)"))
+    clients = remote.connected_clients(settings)
+    lines.append(f"INFO Chats conectados: {len(clients)}" + (f" ({', '.join(clients)})" if clients else ""))
+    return lines, sum(1 for line in lines if line.startswith("FAIL"))
+
+
+def cmd_remote(args, settings: Settings) -> int:
+    from hfcli import remote
+    if args.action == "passphrase":
+        import getpass
+        if not sys.stdin.isatty():
+            raise UsageError("Ejecútalo en una terminal: la frase se escribe a mano y no se muestra.")
+        first = getpass.getpass(f"Frase de acceso (mínimo {remote.MIN_PASSPHRASE} caracteres, no se ve al escribir): ")
+        if getpass.getpass("Repítela: ") != first:
+            raise UsageError("No coinciden; no he cambiado nada.")
+        remote.set_passphrase(settings, first)
+        print("Frase guardada (solo su hash). Si había chats conectados, se han desconectado.")
+        return EXIT_OK
+    if args.action == "status":
+        lines, fails = remote_status(settings)
+        print("\n".join(lines))
+        return EXIT_FAILED if fails else EXIT_OK
+    if args.action == "revoke":
+        count = remote.revoke_all(settings)
+        print(f"Desconectado todo ({count} cliente(s)). Para volver a usarlo, conecta de nuevo desde claude.ai.")
+        return EXIT_OK
+    if args.action == "uninstall":
+        removed = remote.uninstall_service()
+        print("Servicio parado y eliminado." if removed else "No había servicio instalado.")
+        return EXIT_OK
+    if not mcp_available():
+        raise UsageError("Falta el soporte MCP en esta instalación (Python 3.10+ y pip install '.[mcp]').")
+    if args.action == "install":
+        path = remote.install_service(settings)
+        print(f"Servicio instalado ({path}): arranca solo al iniciar sesión y se reinicia si cae.")
+        print("Comprueba con `hf remote status`.")
+        return EXIT_OK
+    remote.serve(settings, args.port)
+    return EXIT_OK
+
+
 def doctor_report(settings: Settings) -> tuple[list[str], int]:
     """Checks that cost nothing. Returns (lines, number of FAIL lines); never includes secrets."""
     lines: list[str] = []
@@ -657,6 +717,13 @@ def build_parser() -> argparse.ArgumentParser:
                    help="serve (por defecto, lo lanza la app de Claude), install (lo registra en Claude), print")
     p.add_argument("--config", help="ruta alternativa de claude_desktop_config.json (install)")
     p.set_defaults(func=cmd_mcp)
+
+    p = sub.add_parser("remote", help="conector remoto: usar hf desde cualquier chat de Claude (web, móvil)")
+    p.add_argument("action", choices=["status", "passphrase", "serve", "install", "uninstall", "revoke"],
+                   help="status (comprobar), passphrase (poner o cambiar la frase), serve (lanzar el servidor), "
+                        "install/uninstall (servicio de macOS), revoke (desconectar todos los chats)")
+    p.add_argument("--port", type=_int_bounded(1, 65535), help="puerto local (serve; por defecto HF_REMOTE_PORT o 8765)")
+    p.set_defaults(func=cmd_remote)
 
     p = sub.add_parser("init", help="preparar este ordenador: crea el archivo de configuración")
     p.add_argument("--open", action="store_true", help="abrirlo en el editor al terminar")

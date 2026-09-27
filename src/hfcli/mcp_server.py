@@ -1,4 +1,5 @@
 """MCP server: lets Claude (desktop app, Cowork, Claude Code) drive hf on this machine.
+Over stdio for the local app; remote.py serves the same tools over HTTPS (OAuth) for any Claude chat.
 
 Every generation costs money. Guards, all enforced server-side:
 - hf_generate is a dry run unless dry_run=false is passed explicitly.
@@ -29,6 +30,7 @@ import time
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any
@@ -41,7 +43,7 @@ from pydantic import Field
 from hfcli import api, costs, frames, guides, jobs, storage
 from hfcli.catalog import Target, describe_param, has_public_price, load, resolve, validate
 from hfcli.config import Settings, UsageError, load_settings, redact
-from hfcli.params import check_values, file_refs, with_placeholders
+from hfcli.params import check_values, file_refs, uri_fields, with_placeholders
 
 DUPLICATE_WINDOW = timedelta(minutes=15)
 CAP_WINDOW = timedelta(hours=24)
@@ -71,13 +73,35 @@ Archivos locales: "@/ruta/absoluta" en los campos de URL de params (image_url, i
 Para saber cuánto se lleva gastado: hf_spend.
 """
 
-server = FastMCP("higgsfield", instructions=INSTRUCTIONS, log_level="WARNING")
+REMOTE_NOTE = """
+Conexión remota (chat sin acceso a este ordenador): los "@archivo" solo pueden ser resultados anteriores (las rutas
+outputs[].file de hf_history) y solo en campos de URL; solo modelos del catálogo. Para cualquier otra imagen o vídeo
+usa una URL https.
+Los archivos generados se guardan en el ordenador del usuario; enséñale la URL (o la de Cloudinary) para verlos.
+"""
+
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 
 _guard = threading.Lock()          # serialises check-and-reserve across parallel tool calls
 _finish_lock = threading.Lock()
 _finishing: dict[str, Future] = {}
 _pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="hf-finish")
+_files_root: Path | None = None    # remote mode: @files must live under this folder
+_TOOLS: list[tuple[Any, dict]] = []
+
+
+def _tool(**options: Any):
+    """Register a tool function; build_server() adds them all to a FastMCP instance."""
+    def register(fn):
+        _TOOLS.append((fn, options))
+        return fn
+    return register
+
+
+def set_remote_mode(files_root: Path | None) -> None:
+    """Remote mode: only @files under files_root (the output folder) may be uploaded."""
+    global _files_root
+    _files_root = files_root.expanduser().resolve() if files_root else None
 
 
 # ---------- helpers ----------
@@ -141,6 +165,25 @@ def _ledger_append(settings: Settings, record: dict) -> None:
         fh.write(line)
         fh.flush()
         os.fsync(fh.fileno())
+
+
+@contextmanager
+def _ledger_lock(settings: Settings):
+    """Serialise check-and-reserve across processes too (the desktop app and the remote server share the
+    ledger). Best effort where fcntl does not exist (Windows): the in-process lock still applies."""
+    try:
+        import fcntl
+    except ImportError:
+        yield
+        return
+    path = settings.output_dir / "mcp_ledger.lock"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 def _ledger(settings: Settings) -> list[dict]:
@@ -251,40 +294,105 @@ def model_info_impl(model: str) -> str:
 
 def _reserve(settings: Settings, target: Target, fp: str, allow_duplicate: bool) -> tuple[str | None, dict | None]:
     """Check duplicates and the cap, then write a reservation. Returns (reservation, refusal)."""
-    now = datetime.now().astimezone()
     with _guard:
         try:
-            active = [r for r in _ledger(settings) if r.get("state") != "released"]
-        except OSError as exc:
-            return None, {"refused": "ledger_unreadable", "message": f"No puedo leer el registro de gasto: {exc}"}
-        if not allow_duplicate:
-            for rec in sorted(active, key=lambda r: str(r.get("reserved_at")), reverse=True):
-                ts = _aware(rec.get("reserved_at"))
-                if rec.get("fingerprint") == fp and ts and now - ts < DUPLICATE_WINDOW:
-                    state = rec.get("state")
-                    message = {
-                        "reserved": "Una petición idéntica se está enviando ahora mismo. Espera y consulta hf_history.",
-                        "submitted": "Esta misma petición ya se lanzó: usa hf_wait con ese request_id.",
-                        "uncertain": "Una petición idéntica acabó en estado incierto (pudo cobrarse). "
-                                     "Que el usuario revise open.higgsfield.ai/usage antes de repetir.",
-                    }.get(state, "Petición idéntica reciente.")
-                    return None, {"refused": "duplicate", "state": state, "request_id": rec.get("request_id"),
-                                  "message": message + " Solo si el usuario quiere otra generación idéntica, "
-                                                       "repite con allow_duplicate=true."}
-        recent = [r for r in active if (_aware(r.get("reserved_at")) or now) > now - CAP_WINDOW]
-        cap = _daily_cap()
-        if cap is not None and len(recent) >= cap:
-            return None, {"refused": "daily_limit", "launched_last_24h": len(recent), "limit": cap,
-                          "message": "Límite de generaciones vía MCP en 24 h alcanzado (HFCLI_MCP_MAX_JOBS_PER_DAY "
-                                     "en .env.local). No lo cambies sin que el usuario lo pida."}
-        reservation = uuid.uuid4().hex[:12]
-        try:
-            _ledger_append(settings, {"reservation": reservation, "state": "reserved", "fingerprint": fp,
-                                      "endpoint": target.endpoint, "model": target.label})
+            with _ledger_lock(settings):
+                return _reserve_locked(settings, target, fp, allow_duplicate)
         except OSError as exc:
             return None, {"refused": "ledger_unwritable",
-                          "message": f"No puedo anotar la reserva ({exc}); por seguridad no se envía nada."}
-        return reservation, None
+                          "message": f"No puedo bloquear el registro de gasto ({exc}); por seguridad no se envía nada."}
+
+
+def _reserve_locked(settings: Settings, target: Target, fp: str,
+                    allow_duplicate: bool) -> tuple[str | None, dict | None]:
+    now = datetime.now().astimezone()
+    try:
+        active = [r for r in _ledger(settings) if r.get("state") != "released"]
+    except OSError as exc:
+        return None, {"refused": "ledger_unreadable", "message": f"No puedo leer el registro de gasto: {exc}"}
+    if not allow_duplicate:
+        for rec in sorted(active, key=lambda r: str(r.get("reserved_at")), reverse=True):
+            ts = _aware(rec.get("reserved_at"))
+            if rec.get("fingerprint") == fp and ts and now - ts < DUPLICATE_WINDOW:
+                state = rec.get("state")
+                message = {
+                    "reserved": "Una petición idéntica se está enviando ahora mismo. Espera y consulta hf_history.",
+                    "submitted": "Esta misma petición ya se lanzó: usa hf_wait con ese request_id.",
+                    "uncertain": "Una petición idéntica acabó en estado incierto (pudo cobrarse). "
+                                 "Que el usuario revise open.higgsfield.ai/usage antes de repetir.",
+                }.get(state, "Petición idéntica reciente.")
+                return None, {"refused": "duplicate", "state": state, "request_id": rec.get("request_id"),
+                              "message": message + " Solo si el usuario quiere otra generación idéntica, "
+                                                   "repite con allow_duplicate=true."}
+    recent = [r for r in active if (_aware(r.get("reserved_at")) or now) > now - CAP_WINDOW]
+    cap = _daily_cap()
+    if cap is not None and len(recent) >= cap:
+        return None, {"refused": "daily_limit", "launched_last_24h": len(recent), "limit": cap,
+                      "message": "Límite de generaciones vía MCP en 24 h alcanzado (HFCLI_MCP_MAX_JOBS_PER_DAY "
+                                 "en .env.local). No lo cambies sin que el usuario lo pida."}
+    reservation = uuid.uuid4().hex[:12]
+    try:
+        _ledger_append(settings, {"reservation": reservation, "state": "reserved", "fingerprint": fp,
+                                  "endpoint": target.endpoint, "model": target.label})
+    except OSError as exc:
+        return None, {"refused": "ledger_unwritable",
+                      "message": f"No puedo anotar la reserva ({exc}); por seguridad no se envía nada."}
+    return reservation, None
+
+
+REMOTE_REF_ERROR = ("En conexión remota, un @archivo solo puede ser un resultado generado antes (una ruta outputs[].file "
+                    "de hf_history, en la carpeta de salida) y solo en un campo de URL. Para cualquier otra cosa usa "
+                    "una URL https.")
+
+
+def _generated_files(settings: Settings) -> set[Path]:
+    files: set[Path] = set()
+    for rec in storage.read_history(settings.history_file):
+        for out in rec.get("outputs") or []:
+            if isinstance(out, dict) and isinstance(out.get("file"), str) and out["file"]:
+                try:
+                    files.add(Path(out["file"]).expanduser().resolve())
+                except (OSError, RuntimeError, ValueError):
+                    continue
+    return files
+
+
+def _check_remote_refs(target: Target, payload: dict, root: Path, settings: Settings) -> None:
+    """Remote mode: catalogued models only, and @refs only as whole values of top-level URL fields, pointing
+    to a file this tool generated (listed in the history) under root. Checked before anything touches the
+    file, with one message for every refusal, so a remote caller can't probe which paths exist."""
+    if target.schema is None:
+        raise UsageError("En conexión remota solo se pueden usar modelos del catálogo (mira hf_models).")
+    uris = uri_fields(target.schema)
+    generated: set[Path] | None = None
+
+    def refs(value: Any, top: bool):
+        if isinstance(value, str):
+            if value.startswith("@") and len(value) > 1:
+                yield value, top
+        elif isinstance(value, list):
+            for item in value:
+                yield from refs(item, top and isinstance(item, str))
+        elif isinstance(value, dict):
+            for item in value.values():
+                yield from refs(item, False)
+
+    for key, value in payload.items():
+        for ref, top in refs(value, True):
+            raw = ref[1:]
+            path = Path(raw).expanduser()  # exactly what file_refs/replace_refs will upload
+            try:
+                real = path.resolve()
+                ok = (key in uris and top and raw == raw.strip() and path.is_absolute()
+                      and real.is_relative_to(root) and real.suffix.lower() in storage.MEDIA_SUFFIXES
+                      and real.is_file())
+                if ok:
+                    generated = _generated_files(settings) if generated is None else generated
+                    ok = real in generated
+            except (OSError, RuntimeError, ValueError):
+                ok = False
+            if not ok:
+                raise UsageError(REMOTE_REF_ERROR)
 
 
 def generate_impl(model: str, prompt: str | None = None, params: dict | None = None,
@@ -294,6 +402,8 @@ def generate_impl(model: str, prompt: str | None = None, params: dict | None = N
     payload = {**target.defaults, **(params or {})}
     if prompt is not None:
         payload["prompt"] = prompt
+    if _files_root is not None:
+        _check_remote_refs(target, payload, _files_root, settings)
     file_refs(payload)  # raises if a referenced local file is missing
     if target.schema is not None:
         errors = check_values(payload, target.schema) + validate(target, with_placeholders(payload))
@@ -315,7 +425,8 @@ def generate_impl(model: str, prompt: str | None = None, params: dict | None = N
     if refusal:
         return refusal
     res, status_url = jobs.submit(target, payload, settings, jobs.Options(quiet=True),
-                                  history_extra={"via": "mcp", "fingerprint": fp, "reservation": reservation})
+                                  history_extra={"via": "mcp-remote" if _files_root is not None else "mcp",
+                                                 "fingerprint": fp, "reservation": reservation})
     if status_url is not None:
         _safe_ledger_update(settings, {"reservation": reservation, "state": "submitted", "request_id": res.request_id})
         return {"submitted": True, "request_id": res.request_id, "status": res.status, "model": target.label,
@@ -411,7 +522,8 @@ def guide_impl(model: str, include_general: bool = True) -> str:
 
 
 def rate_impl(request_id: str, rating: int, note: str = "") -> dict:
-    saved = guides.rate(_settings().history_file, request_id, rating, note)
+    saved = guides.rate(_settings().history_file, request_id, rating, note,
+                        via="mcp-remote" if _files_root is not None else None)
     return {"saved": True, **saved,
             "next": "Guardado. hf_prompt_guide mostrará esta valoración la próxima vez que se use este modelo."}
 
@@ -446,7 +558,7 @@ def _error(exc: Exception) -> str:
     return redact(f"Error: {kind}{exc}")
 
 
-@server.tool(annotations=READ_ONLY)
+@_tool(annotations=READ_ONLY)
 async def hf_models(search: str = "", kind: str = "") -> str:
     """Lista los modelos del catálogo (alias, tipo de salida, endpoint). kind: "video" o "image"."""
     try:
@@ -455,7 +567,7 @@ async def hf_models(search: str = "", kind: str = "") -> str:
         return _error(exc)
 
 
-@server.tool(annotations=READ_ONLY)
+@_tool(annotations=READ_ONLY)
 async def hf_model_info(model: str) -> str:
     """Parámetros admitidos, valores permitidos, reglas y precio publicado de un modelo (alias o endpoint)."""
     try:
@@ -464,7 +576,7 @@ async def hf_model_info(model: str) -> str:
         return _error(exc)
 
 
-@server.tool(annotations=READ_ONLY)
+@_tool(annotations=READ_ONLY)
 async def hf_prompt_guide(model: str, include_general: bool = True) -> str:
     """Cómo escribir el prompt para un modelo (alias o endpoint): estructura, cámara, audio, referencias,
     fallos conocidos, prueba barata y plantillas, con fuentes. Incluye las generaciones de ese modelo mejor
@@ -476,8 +588,8 @@ async def hf_prompt_guide(model: str, include_general: bool = True) -> str:
         return _error(exc)
 
 
-@server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True,
-                                         openWorldHint=False))
+@_tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True,
+                                   openWorldHint=False))
 async def hf_rate(request_id: str, rating: Annotated[int, Field(strict=True, ge=1, le=5)], note: str = "") -> str:
     """Guarda la valoración del usuario sobre una generación ya hecha: rating de 1 a 5 y un comentario
     corto (qué funcionó o qué falló). No gasta nada. La última valoración de cada request_id es la que cuenta."""
@@ -487,8 +599,8 @@ async def hf_rate(request_id: str, rating: Annotated[int, Field(strict=True, ge=
         return _error(exc)
 
 
-@server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False,
-                                         openWorldHint=True))
+@_tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False,
+                                   openWorldHint=True))
 async def hf_generate(model: str, prompt: str | None = None, params: dict[str, Any] | None = None,
                       dry_run: bool = True, allow_duplicate: bool = False) -> str:
     """Valida (dry_run=true, por defecto, gratis) o lanza (dry_run=false, DE PAGO) una generación.
@@ -501,8 +613,8 @@ async def hf_generate(model: str, prompt: str | None = None, params: dict[str, A
         return _error(exc)
 
 
-@server.tool(annotations=ToolAnnotations(readOnlyHint=False, idempotentHint=True, openWorldHint=True),
-             structured_output=False)
+@_tool(annotations=ToolAnnotations(readOnlyHint=False, idempotentHint=True, openWorldHint=True),
+       structured_output=False)
 async def hf_wait(request_id: str, max_seconds: int = WAIT_MAX_S, include_preview: bool = True) -> list:
     """Espera como mucho ~35-45 s a que termine una generación (menos de 60 s con previsualizaciones).
     Si done=false, vuelve a llamar.
@@ -524,7 +636,7 @@ async def hf_wait(request_id: str, max_seconds: int = WAIT_MAX_S, include_previe
     return content
 
 
-@server.tool(annotations=READ_ONLY)
+@_tool(annotations=READ_ONLY)
 async def hf_history(n: int = 10) -> str:
     """Últimas generaciones (estado, request_id, prompt, valoración, archivos locales, URLs de Cloudinary)."""
     try:
@@ -533,7 +645,7 @@ async def hf_history(n: int = 10) -> str:
         return _error(exc)
 
 
-@server.tool(annotations=READ_ONLY)
+@_tool(annotations=READ_ONLY)
 async def hf_spend(days: float = 30) -> str:
     """Gasto de los últimos N días por modelo: lanzadas, completadas, no cobradas (fallos/NSFW),
     pendientes o inciertas y USD estimado con precios públicos. El importe real está en open.higgsfield.ai/usage."""
@@ -543,7 +655,7 @@ async def hf_spend(days: float = 30) -> str:
         return _error(exc)
 
 
-@server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True))
+@_tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True))
 async def hf_cancel(request_id: str) -> str:
     """Cancela una generación que aún está en cola (si ya empezó, no se puede)."""
     try:
@@ -552,13 +664,25 @@ async def hf_cancel(request_id: str) -> str:
         return _error(exc)
 
 
-@server.tool(annotations=READ_ONLY)
+@_tool(annotations=READ_ONLY)
 async def hf_doctor() -> str:
     """Comprueba la configuración (clave, conexión, carpeta de salida, Cloudinary) sin gastar créditos."""
     try:
         return await anyio.to_thread.run_sync(doctor_impl)
     except Exception as exc:
         return _error(exc)
+
+
+def build_server(remote: bool = False, **settings: Any) -> FastMCP:
+    """A FastMCP instance with every hf_* tool. Extra settings (auth, host, port...) go to FastMCP."""
+    srv = FastMCP("higgsfield", instructions=INSTRUCTIONS + (REMOTE_NOTE if remote else ""),
+                  log_level="WARNING", **settings)
+    for fn, options in _TOOLS:
+        srv.add_tool(fn, **options)
+    return srv
+
+
+server = build_server()
 
 
 def serve() -> None:
