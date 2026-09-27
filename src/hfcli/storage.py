@@ -136,7 +136,7 @@ def read_history(history_file: Path) -> list[dict]:
             rating = rec.get("rating")
             if key in latest and isinstance(rating, int) and not isinstance(rating, bool) and 1 <= rating <= 5:
                 latest[key].update(rating=rating, rating_note=str(rec.get("rating_note") or ""),
-                                   rated_at=rec.get("ts"))
+                                   rated_at=rec.get("ts"), rating_via=rec.get("via"))
             continue
         previous = latest.pop(key, {})
         latest[key] = {**previous, **rec}
