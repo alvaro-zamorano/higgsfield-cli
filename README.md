@@ -133,9 +133,71 @@ Antes de lanzar nada se validan todos los trabajos y se suben los archivos. Si u
 - Una petición idéntica en los últimos 15 minutos se rechaza, esté enviándose, aceptada o en estado incierto. Así un reintento por timeout no cobra dos veces.
 - Si ese registro no se puede escribir, no se envía nada.
 - Cada validación y cada envío llevan el coste estimado cuando el precio público lo permite. Si no se puede calcular, se dice.
-- Tope opcional de generaciones vía MCP en 24 h móviles: `HFCLI_MCP_MAX_JOBS_PER_DAY` en `.env.local`. Sin esa variable no hay tope.
+- Tope de generaciones vía MCP en 24 h móviles: `HFCLI_MCP_MAX_JOBS_PER_DAY` en `.env.local`. En local es opcional (sin la variable no hay tope); el conector remoto no arranca sin él.
 
 Los logs del servidor están en `~/Library/Logs/Claude/mcp-server-higgsfield.log` (macOS).
+
+## Usar hf desde cualquier chat (conector remoto)
+
+El servidor MCP normal solo lo ve la app de Claude del propio ordenador. El conector remoto publica las mismas herramientas `hf_*` para que funcionen en cualquier chat de claude.ai: web, móvil o un Cowork no vinculado. La clave sigue en `.env.local` de tu Mac, y las generaciones y archivos también se quedan ahí. El Mac tiene que estar encendido y sin dormir; la app de Claude no hace falta.
+
+Qué se usa:
+
+- `hf remote serve`: servidor HTTP en `127.0.0.1` (puerto 8765 por defecto).
+- Tailscale Funnel lo publica en `https://<tu-mac>.<tu-tailnet>.ts.net`, con HTTPS y URL fija. Es gratis en el plan personal.
+- claude.ai se conecta por OAuth. Al conectar te pide una frase de acceso en una página servida por tu Mac.
+
+Puesta en marcha (una vez, en el Mac):
+
+1. Instala Tailscale (tailscale.com/download) e inicia sesión. En la consola de administración, en DNS, activa MagicDNS y HTTPS Certificates.
+2. Publica el puerto. La primera vez te dará un enlace para autorizar Funnel; después imprime la URL pública:
+
+   ```bash
+   tailscale funnel --bg 8765
+   ```
+
+   Si `tailscale` no está en el PATH, usa `/Applications/Tailscale.app/Contents/MacOS/Tailscale funnel --bg 8765`.
+3. Añade a `~/.higgsfield-cli/.env.local` la URL que ha salido (sin ruta) y un tope diario, que en remoto es obligatorio:
+
+   ```
+   HF_REMOTE_URL=https://tu-mac.tu-tailnet.ts.net
+   HFCLI_MCP_MAX_JOBS_PER_DAY=10
+   ```
+
+4. Pon la frase de acceso (mínimo 12 caracteres; se escribe en la terminal y solo se guarda su hash):
+
+   ```bash
+   ~/.higgsfield-cli/venv/bin/hf remote passphrase
+   ```
+
+5. Deja el servidor como servicio (arranca al iniciar sesión y se reinicia si cae) y compruébalo:
+
+   ```bash
+   ~/.higgsfield-cli/venv/bin/hf remote install
+   ~/.higgsfield-cli/venv/bin/hf remote status
+   ```
+
+6. En claude.ai (web): Configuración → Conectores → Añadir conector personalizado. Nombre `hf remoto`, URL `https://tu-mac.tu-tailnet.ts.net/mcp`. Pulsa Conectar, escribe la frase en la página que se abre y acepta. A partir de ahí aparece también en el móvil.
+7. Si en el conector ves permisos por herramienta, pon `hf_generate` en "Needs approval".
+
+| Comando | Qué hace |
+|---|---|
+| `hf remote status` | Comprueba configuración, servicio, servidor local, túnel y chats conectados. No muestra secretos. |
+| `hf remote passphrase` | Pone o cambia la frase. Cambiarla desconecta todos los chats. |
+| `hf remote revoke` | Desconecta todos los chats al momento. |
+| `hf remote install` / `uninstall` | Servicio de macOS (launchd). Log en `~/.higgsfield-cli/remote/server.log`. |
+| `hf remote serve` | Lanza el servidor en primer plano (lo usa el servicio). |
+
+Seguridad:
+
+- El servidor solo escucha en `127.0.0.1`, y solo el túnel lo publica.
+- Sin la frase no hay acceso. Solo se guarda su hash (PBKDF2). Cada enlace de conexión admite 3 intentos, y tras 5 fallos en 15 minutos la página se bloquea 15 minutos.
+- Solo se aceptan las direcciones de retorno de Claude (y las locales, para Claude Code), así que el código de autorización no puede acabar en otro sitio. PKCE es obligatorio.
+- Los tokens se guardan como hash en `~/.higgsfield-cli/remote/state.json` (permisos 600). El de acceso dura 1 hora y el de renovación 30 días, y se rota en cada uso. Si vuelve a aparecer uno ya usado, se cierran todas las sesiones de ese cliente.
+- No arranca sin tope diario, y el tope cuenta todo lo lanzado por MCP desde cualquier chat.
+- Siguen activas todas las protecciones de gasto de arriba: validación por defecto, reserva previa, bloqueo de duplicados.
+- En remoto, los `@archivo` solo pueden ser resultados anteriores (rutas `outputs[].file` de `hf history`) y solo en campos de URL. Para otras imágenes, usa una URL https. Tampoco se aceptan modelos fuera del catálogo.
+- Los formularios sin autenticar tienen un límite de tamaño, y el servidor no arranca si la carpeta de salida es tu carpeta personal o contiene la configuración.
 
 ## Catálogo
 
@@ -150,6 +212,8 @@ Los logs del servidor están en `~/Library/Logs/Claude/mcp-server-higgsfield.log
 - La API pública no incluye todo Higgsfield: no hay voces, doblaje, upscale, Shorts Studio ni publicación en TikTok. Eso sigue en el conector de Higgsfield de Claude.
 - `hf presets` y la comprobación de clave de `hf doctor` están probadas solo con una clave inválida. Con una válida, confirma la primera vez que salen bien.
 - 37 de los 52 endpoints no publican precio. Revisa el consumo en open.higgsfield.ai/usage.
+- El tope diario cuenta generaciones, no dólares: pon un número acorde con lo que estés dispuesto a gastar en un mal día.
+- El conector remoto está probado de principio a fin en local (el cliente OAuth del SDK de MCP hace el mismo recorrido que claude.ai). La conexión real desde claude.ai a través de Tailscale se confirma al instalarlo, con `hf remote status` y conectando desde la web.
 - Las guías de prompt salen de documentación pública (oficial cuando existe). Aún no se han contrastado con generaciones propias: eso lo irán diciendo las valoraciones. Hay dudas abiertas, marcadas en cada guía:
   - qué token de referencia acepta Seedance 2.5 en Higgsfield (`@Image1` u otro);
   - qué acepta el campo `elements` de Kling 3.0.
